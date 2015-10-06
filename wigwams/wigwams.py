@@ -2,6 +2,8 @@ import numpy as np
 import multiprocessing as mp
 import pandas as pd
 import itertools as it
+import csv
+import scipy.stats as sps
 
 def row_pearson(mat, prof):
 	'''
@@ -16,6 +18,7 @@ def row_pearson(mat, prof):
 	#prepare data for doing things
 	mat = mat-np.mean(mat,axis=1)[:,None]
 	prof = prof-np.mean(prof)
+	#computing the PCC is pretty simple and can be done in one shot
 	return np.sum(mat*prof,axis=1)/(np.sqrt(np.sum(mat*mat,axis=1))*np.sqrt(np.sum(prof*prof)))
 
 def log_hypergeometric(x, G1, G2, U):
@@ -138,10 +141,33 @@ def write_module(f, module):
 		f.write(','+module[4][i])
 	f.write('\n')
 
+def read_modules(fname):
+	'''
+	A function that reads all of the modules from a given file and returns then as an np.array.
+	
+	Input:
+		* fname - name of file to read the modules from
+	'''
+	
+	#sponge up the file
+	with open(fname, 'r') as f:
+		reader = csv.reader(f,delimiter='\t')
+		reader = list(reader)
+	#now parse the bits and pieces. items 1 and 5 are actually lists
+	for i in range(len(reader)):
+		reader[i][0] = reader[i][0].split(',')
+		#maintain the tradition of the set coming out as a list because reasons
+		reader[i][2] = [int(reader[i][2])]
+		reader[i][3] = float(reader[i][3])
+		reader[i][4] = reader[i][4].split(',')
+	#that's about it. feed it out for other functions to use
+	return np.asarray(reader)
+
 def singlemoduletest(corrgenes, singleset, comb, singlepvals, deg_df, degconds):
 	'''
 	A helper function to assess a single module
 	'''
+	
 	#extract the overlap as the intersection of the top genes across the comb conditions
 	overlap = set(corrgenes[range(singleset),comb[0]])
 	for i in range(1,len(comb)):
@@ -168,6 +194,7 @@ def singlemining(seed, expr_df, deg_df, sets, alpha, corrnet, pvals):
 		* corrnet - the correlation threshold to cut off mining
 		* pvals - the pre-generated p-values
 	'''
+	
 	#So, where's our seed DEG in?
 	conditions = deg_df.columns.tolist()
 	mask = (deg_df.loc[seed,:]==1).tolist()
@@ -240,6 +267,7 @@ def pool_singlemining(seed):
 	'''
 	The wrapper function for the parallelised mining, calling the actual mining function within.
 	'''
+	
 	#take all the things that _pool_init made "global" for the pool running and call the actual function
 	return singlemining(seed, expr_df, deg_df, sets, alpha, corrnet, pvals)
 
@@ -300,4 +328,110 @@ def mining(expr_df, deg_df, pool=1, sets=[50, 100, 150, 200, 250], alpha=0.05, c
 					print('Found '+str(modcount)+' modules so far...')
 	#okay, we're done, close the file
 	print('Found '+str(modcount)+' modules in total')
+	writer.close()
+
+def merging(expr_df, overlap=0.3, meancorr=0.9, corrfilt=0.8):
+	'''
+	The merging of redundant Wigwams modules spanning the same conditions.
+	
+	Input:
+		* expr_df - PANDAS data frame of expression
+		* overlap - what fraction of the smaller module size has to be made of the overlap to trigger merging. Default: 0.3
+		* meancorr - how correlated the means of modules have to be to trigger merging independent of membership overlap. Default: 0.9
+		* corrfilt - how correlated the genes have to be to the mean of the larger module to get moved over. Default: 0.8
+	'''
+	
+	#let us read the modules first
+	raw_modules = read_modules('raw_modules.txt')
+	#so, what categories will we need to look at?
+	categories = np.unique(raw_modules[:,0])
+	#dummy variable for deleted modules
+	del_inds = []
+	#alright. loop over the categories and get stuff done
+	for cat in categories:
+		print('Merging redundant modules. Condition span: '+', '.join(cat))
+		#get the indices of the modules spanning that condition combination
+		inds = []
+		for i in range(raw_modules.shape[0]):
+			if raw_modules[i,0]==cat:
+				inds.append(i)
+		inds = np.asarray(inds)
+		#sort the buggers on length
+		lengths = []
+		for i in range(len(inds)):
+			lengths.append(len(raw_modules[inds[i],4]))
+		indmask = np.asarray([i[0] for i in sorted(enumerate(lengths), reverse=True, key=lambda x:x[1])])
+		inds = inds[indmask]
+		#okay, now we have them largest to smallest
+		#precompute module means
+		mod_means = []
+		for i in range(len(inds)):
+			holder = []
+			for cond in cat:
+				holder.append(np.mean(expr_df.loc[raw_modules[inds[i],4],cond],axis=0))
+			mod_means.append(holder)
+		#commence merging!
+		for i in range(len(inds)-1):
+			#this is the module we're gonna try to merge the others with
+			#no point merging if it's already merged into something
+			if inds[i] in del_inds:
+				continue
+			#repeat merging until nothing merged
+			toggle = 1
+			while toggle==1:
+				#this has to be set to 1 in the code when something merges to merit another loop
+				toggle = 0
+				for j in range(i+1,len(inds)):
+					#this is the module we'll try to merge into it
+					#no point merging it if it's already merged into something
+					if inds[j] in del_inds:
+						continue
+					#if the code is still here, we're eligible to check if module j can be merged into module i
+					common_genes = list(set(raw_modules[inds[i],4]) & set(raw_modules[inds[j],4]))
+					#will merging happen?
+					mergetog = 0
+					if float(len(common_genes))/float(min(len(raw_modules[inds[i],4]),len(raw_modules[inds[j],4]))) >= overlap:
+						#sufficient membership overlap
+						mergetog = 1
+					else:
+						#test the correlation of the means
+						mergetog = 1
+						for k in range(len(cat)):
+							#this is the means structure, so just refer to modules as i and j
+							if sps.pearsonr(mod_means[i][k], mod_means[j][k])[0] < meancorr:
+								#correlation condition busted, merging not happening
+								mergetog = 0
+								break
+					if mergetog == 0:
+						#merging not happening
+						continue
+					#if we're here, merging is happening
+					toggle = 1
+					new_genes = list(set(raw_modules[inds[j],4])-set(common_genes))
+					for gene in new_genes:
+						#need to make sure that it's correlated enough
+						add_gene = 1
+						for k in range(len(cat)):
+							if sps.pearsonr(mod_means[i][k], expr_df.loc[gene,cat[k]])[0] < corrfilt:
+								#not correlated enough to the mean, abort the proceedings
+								add_gene = 0
+								break
+						if add_gene == 1:
+							#that means we're adding the gene. let's add the gene. gene. add gene.
+							raw_modules[inds[i],4].append(gene)
+					#post-merging stuff - note the module got merged, and recompute mean
+					del_inds.append(inds[j])
+					holder = []
+					for cond in cat:
+						holder.append(np.mean(expr_df.loc[raw_modules[inds[i],4],cond],axis=0))
+					mod_means[i] = holder
+	#wipe the modules to wipe, and sort gene membership of the survivors because yes, and write them out
+	if del_inds:
+		merged_modules = np.delete(raw_modules,del_inds,axis=0)
+	else:
+		merged_modules = raw_modules
+	writer = open('merged_modules.txt','w')
+	for i in range(merged_modules.shape[0]):
+		merged_modules[i,4].sort()
+		write_module(writer,list(merged_modules[i,:]))
 	writer.close()

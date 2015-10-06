@@ -113,8 +113,6 @@ def parse_dfs():
 	#I think we have everything this function can do. spit it out for further consumption
 	return (expr_df, deg_df, args)
 
-
-
 def wigwams_analysis_default(expr_df, deg_df, args):
 	'''
 	The bog standard Wigwams pipeline, as described in the paper: mining -> merging -> sweeping
@@ -124,14 +122,15 @@ def wigwams_analysis_default(expr_df, deg_df, args):
 		* deg_df - PANDAS data frame of DEG status, as parsed by parse_dfs().
 		* args - command line arguments, as parsed by parse_dfs().
 	'''
+	#mining. the time consuming part
 	t0 = time.time()
 	ww.mining(expr_df, deg_df, pool=args.pool, sets=args.sets, alpha = args.alpha, corrnet=args.corrnet)
 	t1 = time.time()
 	m, s = divmod(round(t1-t0), 60)
 	h, m = divmod(m, 60)
 	print('Took %d:%02d:%02d. Module mining complete.' % (h, m, s))
-
-
+	#merging
+	ww.merging(expr_df, overlap=args.merging_overlap, meancorr=args.meancorr, corrfilt=args.corrfilt)
 
 def main():
 	#parse the inputs
