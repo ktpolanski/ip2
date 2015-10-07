@@ -5,9 +5,9 @@ import pandas as pd
 import wigwams as ww
 import time
 
-def parse_dfs():
+def parse_args():
 	'''
-	Take all things command line and data and return nice, handy, PANDAS parsed versions of gene expression, DEGs and other arguments.
+	Parse all things command line, and then return them
 	'''
 	
 	#accept all useful arguments in the command line, most of them optional
@@ -25,9 +25,18 @@ def parse_dfs():
 	parser.add_argument('--Merging_CorrelationFilter', dest='corrfilt', default=0.8, type=float, help='Module merging. If a gene\'s profile isn\'t at least this PCC-correlated with the mean profile of the larger module, don\'t transfer it over when merging, discarding it instead. Default: 0.8')
 	parser.add_argument('--Sweeping_Overlap', dest='sweep_overlap', default=0.5, type=float, help='Module sweeping. Discard a module spanning a subset of another module\'s conditions if its membership is made up of at least this proportion of the module with the condition superset. Default: 0.5')
 	parser.add_argument('--SizeThresholds', dest='thresh', default=[], type=int, nargs='+', help='Module size thresholding. Optional post-processing step to filter down the module list to modules of at least a given size. Provide as space delimited list, with first element being the desired minimal size of 2-condition modules and the last being the desired minimal size of modules across all the conditions. Default: [] (procedure off)')
+	parser.add_argument('--JobName', dest='job', default='job', type=str, help='Job name for output naming purposes. Default: job')
 	args = parser.parse_args()
+	return args
 
-	#parse the expression CSV
+def parse_expr_df(args):
+	'''
+	Parse the expression CSV within parse_dfs().
+	
+	Input:
+		* args - parsed command line arguments
+	'''
+	
 	print('Parsing expression CSV file...')
 	expr_df = pd.read_csv(args.expr, index_col=0, header=[0,1])
 	#case insensitive gene names = caps all the gene names on sight
@@ -40,52 +49,55 @@ def parse_dfs():
 		new_colnames.append((lab[0].title(), float(lab[1])))
 	#the names=[] part allows for easy unearthing of all things treatment for correlations later
 	expr_df.columns = pd.MultiIndex.from_tuples(new_colnames,names=['Treatment','Time'])
+	#spit it back out to function
+	return expr_df
 
-	#parse the DEG CSV
-	if args.deg is not None:
-		print('Parsing DEG CSV file...')
-		deg_df = pd.read_csv(args.deg, index_col=0, header=0)
-		#once again, caps gene names on sight
-		deg_df.index = map(lambda x:x.upper(), deg_df.index.tolist())
-		deg_df.columns = map(lambda x:x.title(), deg_df.columns.tolist())
-		
-		#filter to the same genes in both data frames
-		genes = set(deg_df.index) & set(expr_df.index)
-		deg_df = deg_df[deg_df.index.isin(genes)]
-		expr_df = expr_df[expr_df.index.isin(genes)]
-		
-		#filter to the same columns in both data frames
-		#need to walk around .loc[] not working with this for reasons I don't understand
-		expconds = expr_df.columns.get_level_values('Treatment').tolist()
-		degconds = deg_df.columns.tolist()
-		intconds = list(set(expconds) & set(degconds))
-		#filtering involves using .iloc[] as that somehow works
-		#dig up the indices of the condition overlap
-		expmask = []
-		for i in range(0,len(expconds)):
-			if expconds[i] in intconds:
-				expmask.append(i)
-		degmask = []
-		for i in range(0,len(degconds)):
-			if degconds[i] in intconds:
-				degmask.append(i)
-		#and now that we have the two sets of indices, filter the columns
-		expr_df = expr_df.iloc[:,expmask]
-		deg_df = deg_df.iloc[:,degmask]
-		
-		#now, filter out genes that are insufficiently DE
-		deg_df = deg_df[deg_df.sum(axis=1)>0]
-		genes = deg_df.index.tolist()
-		expr_df = expr_df[expr_df.index.isin(genes)]
-	else:
-		#just make a mock one if there is none, makes it easier for the script later on
-		#no need for filtering as obviously all is well
-		print('Creating mock DEG dataframe...')
-		expgenes = expr_df.index.tolist()
-		expconds = list(set(expr_df.columns.get_level_values('Treatment')))
-		deg_df = pd.DataFrame(np.ones((len(expgenes),len(expconds))), index=expgenes, columns=expconds)
+def filter_dfs(expr_df, deg_df):
+	'''
+	Take the expr_df and deg_df and trim them down to genes DE in at least one condition, and unify condition span.
+	
+	Input:
+		* expr_df - PANDAS data frame of expression
+		* deg_df - PANDAS data frame of DEG status
+	'''
+	
+	#filter to the same genes in both data frames
+	genes = set(deg_df.index) & set(expr_df.index)
+	deg_df = deg_df[deg_df.index.isin(genes)]
+	expr_df = expr_df[expr_df.index.isin(genes)]
+	
+	#filter to the same columns in both data frames
+	#need to walk around .loc[] not working with this for reasons I don't understand
+	expconds = expr_df.columns.get_level_values('Treatment').tolist()
+	degconds = deg_df.columns.tolist()
+	intconds = list(set(expconds) & set(degconds))
+	#filtering involves using .iloc[] as that somehow works
+	#dig up the indices of the condition overlap
+	expmask = []
+	for i in range(0,len(expconds)):
+		if expconds[i] in intconds:
+			expmask.append(i)
+	degmask = []
+	for i in range(0,len(degconds)):
+		if degconds[i] in intconds:
+			degmask.append(i)
+	#and now that we have the two sets of indices, filter the columns
+	expr_df = expr_df.iloc[:,expmask]
+	deg_df = deg_df.iloc[:,degmask]
+	
+	#now, filter out genes that are insufficiently DE
+	deg_df = deg_df[deg_df.sum(axis=1)>0]
+	genes = deg_df.index.tolist()
+	expr_df = expr_df[expr_df.index.isin(genes)]
+	
+	return (expr_df, deg_df)
 
-	#time for a few sanity checks. need at least 2 conditions (and preferably more than 2 genes too)
+def sanity_checks(expr_df, deg_df, args):
+	'''
+	Make sure everything is okay with the input at this stage and nothing will trip up.
+	'''
+	
+	#need at least 2 conditions (and preferably more than 2 genes too)
 	if 0 in deg_df.shape or 1 in deg_df.shape:
 		print('error: insufficient number of conditions and/or genes')
 		sys.exit()
@@ -100,6 +112,38 @@ def parse_dfs():
 		if len(args.thresh) != (len(deg_df.columns)-1):
 			print('error: incompatible number of thresholding set sizes and actual number of data sets')
 			sys.exit()
+	
+
+def parse_dfs(args):
+	'''
+	Take all things command line and data and return nice, handy, PANDAS parsed versions of gene expression, DEGs and other arguments.
+	
+	Input:
+		* args - parsed command line arguments
+	'''
+
+	#parse the expression CSV
+	expr_df = parse_expr_df(args)
+
+	#parse the DEG CSV
+	if args.deg is not None:
+		print('Parsing DEG CSV file...')
+		deg_df = pd.read_csv(args.deg, index_col=0, header=0)
+		#once again, caps gene names on sight
+		deg_df.index = map(lambda x:x.upper(), deg_df.index.tolist())
+		deg_df.columns = map(lambda x:x.title(), deg_df.columns.tolist())
+		#filter contents
+		(expr_df, deg_df) = filter_dfs(expr_df, deg_df)
+	else:
+		#just make a mock one if there is none, makes it easier for the script later on
+		#no need for filtering as obviously all is well
+		print('Creating mock DEG dataframe...')
+		expgenes = expr_df.index.tolist()
+		expconds = list(set(expr_df.columns.get_level_values('Treatment')))
+		deg_df = pd.DataFrame(np.ones((len(expgenes),len(expconds))), index=expgenes, columns=expconds)
+
+	#time for a few sanity checks.
+	sanity_checks(expr_df, deg_df, args)
 
 	#time for data standardisation
 	#temporarily commented out to evaluate run
@@ -111,7 +155,7 @@ def parse_dfs():
 	'''
 	
 	#I think we have everything this function can do. spit it out for further consumption
-	return (expr_df, deg_df, args)
+	return (expr_df, deg_df)
 
 def wigwams_analysis_default(expr_df, deg_df, args):
 	'''
@@ -124,17 +168,24 @@ def wigwams_analysis_default(expr_df, deg_df, args):
 	'''
 	#mining. the time consuming part
 	t0 = time.time()
-	ww.mining(expr_df, deg_df, pool=args.pool, sets=args.sets, alpha = args.alpha, corrnet=args.corrnet)
+	ww.mining(expr_df, deg_df, pool=args.pool, sets=args.sets, alpha = args.alpha, corrnet=args.corrnet, job=args.job)
 	t1 = time.time()
 	m, s = divmod(round(t1-t0), 60)
 	h, m = divmod(m, 60)
 	print('Took %d:%02d:%02d. Module mining complete.' % (h, m, s))
 	#merging
-	ww.merging(expr_df, overlap=args.merging_overlap, meancorr=args.meancorr, corrfilt=args.corrfilt)
+	t0 = time.time()
+	ww.merging(expr_df, overlap=args.merging_overlap, meancorr=args.meancorr, corrfilt=args.corrfilt, job=args.job)
+	t1 = time.time()
+	m, s = divmod(round(t1-t0), 60)
+	h, m = divmod(m, 60)
+	print('Took %d:%02d:%02d. Module merging complete.' % (h, m, s))
 
 def main():
+	#parse the command line stuff
+	args = parse_args()
 	#parse the inputs
-	(expr_df, deg_df, args) = parse_dfs()
+	(expr_df, deg_df) = parse_dfs(args)
 	#default analysis pipeline. split off into function to experiment with workflows if desired
 	wigwams_analysis_default(expr_df, deg_df, args)
 
