@@ -179,15 +179,14 @@ def read_modules(fname):
 	#that's about it. feed it out for other functions to use
 	return np.asarray(reader)
 
-if del_inds:
-		filtered_modules = np.delete(raw_modules,del_inds,axis=0)
-	else:
-		filtered_modules = raw_modules
-	print('Filtered down to '+str(filtered_modules.shape[0])+' modules.')
-	writer = write_modules(job+'/filtered_modules.txt',swept_modules)
-	#how long did we take?
-	t1 = time.time()
-	print_time(t1, t0, 'Module filtering')
+def print_time(t1, t0, jobname):
+	'''
+	Helper function to print the time taken by procedures.
+	'''
+	m, s = divmod(round(t1-t0), 60)
+	h, m = divmod(m, 60)
+	holderstring = 'Took %d:%02d:%02d. '+jobname+' complete.'
+	print(holderstring % (h, m, s))
 
 def singlemoduletest(corrgenes, singleset, comb, singlepvals, deg_df, degconds):
 	'''
