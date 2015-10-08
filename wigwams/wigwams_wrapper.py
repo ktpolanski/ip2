@@ -1,9 +1,7 @@
 import argparse
-import sys
 import numpy as np
 import pandas as pd
 import wigwams as ww
-import time
 
 def parse_args():
 	'''
@@ -99,19 +97,17 @@ def sanity_checks(expr_df, deg_df, args):
 	
 	#need at least 2 conditions (and preferably more than 2 genes too)
 	if 0 in deg_df.shape or 1 in deg_df.shape:
-		print('error: insufficient number of conditions and/or genes')
-		sys.exit()
+		raise ValueError('Insufficient number of conditions and/or genes')
+		
 	
 	#need some genes to mine as well
 	if all(np.sum(deg_df.values,axis=1)<2):
-		print('error: no genes differentially expressed across two or more conditions')
-		sys.exit()
+		raise ValueError('No genes differentially expressed across two or more conditions')
 	
 	#also would be nice that if we have the thresholding sizes, they actually match in number to condition span
 	if args.thresh:
 		if len(args.thresh) != (len(deg_df.columns)-1):
-			print('error: incompatible number of thresholding set sizes and actual number of data sets')
-			sys.exit()
+			raise ValueError('Incompatible number of thresholding set sizes and actual number of data sets')
 	
 
 def parse_dfs(args):
@@ -167,19 +163,11 @@ def wigwams_analysis_default(expr_df, deg_df, args):
 		* args - command line arguments, as parsed by parse_dfs().
 	'''
 	#mining. the time consuming part
-	t0 = time.time()
 	ww.mining(expr_df, deg_df, pool=args.pool, sets=args.sets, alpha = args.alpha, corrnet=args.corrnet, job=args.job)
-	t1 = time.time()
-	m, s = divmod(round(t1-t0), 60)
-	h, m = divmod(m, 60)
-	print('Took %d:%02d:%02d. Module mining complete.' % (h, m, s))
 	#merging
-	t0 = time.time()
 	ww.merging(expr_df, overlap=args.merging_overlap, meancorr=args.meancorr, corrfilt=args.corrfilt, job=args.job)
-	t1 = time.time()
-	m, s = divmod(round(t1-t0), 60)
-	h, m = divmod(m, 60)
-	print('Took %d:%02d:%02d. Module merging complete.' % (h, m, s))
+	#sweeping
+	ww.sweeping(overlap=args.sweeping_overlap, job=args.job)
 
 def main():
 	#parse the command line stuff

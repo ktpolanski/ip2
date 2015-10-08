@@ -5,6 +5,7 @@ import itertools as it
 import csv
 import scipy.stats as sps
 import os
+import time
 
 def row_pearson(mat, prof):
 	'''
@@ -141,6 +142,22 @@ def write_module(f, module):
 	#new line
 	f.write('\n')
 
+def write_modules(fname, modules):
+	'''
+	A function that writes a whole np.array's worth of modules to a given file name.
+	
+	Input:
+		* fname - the path where to store the modules
+		* modules - the np.array of the modules to write
+	'''
+	
+	writer = open(os.path.normcase(fname),'w')
+	for i in range(modules.shape[0]):
+		#sort the gene list, just in case
+		modules[i,4].sort()
+		write_module(writer,list(modules[i,:]))
+	writer.close()
+
 def read_modules(fname):
 	'''
 	A function that reads all of the modules from a given file and returns then as an np.array.
@@ -162,6 +179,16 @@ def read_modules(fname):
 	#that's about it. feed it out for other functions to use
 	return np.asarray(reader)
 
+if del_inds:
+		filtered_modules = np.delete(raw_modules,del_inds,axis=0)
+	else:
+		filtered_modules = raw_modules
+	print('Filtered down to '+str(filtered_modules.shape[0])+' modules.')
+	writer = write_modules(job+'/filtered_modules.txt',swept_modules)
+	#how long did we take?
+	t1 = time.time()
+	print_time(t1, t0, 'Module filtering')
+
 def singlemoduletest(corrgenes, singleset, comb, singlepvals, deg_df, degconds):
 	'''
 	A helper function to assess a single module
@@ -178,7 +205,6 @@ def singlemoduletest(corrgenes, singleset, comb, singlepvals, deg_df, degconds):
 	#the seed gene invariably shows up in the overlap, account for that by shifting by 1
 	#(p-values start at an overlap of 0, which is essentially what we're seeing in that case)
 	return (overlap, singlepvals[len(overlap)-1])
-	
 
 def singlemining(seed, expr_df, deg_df, sets, alpha, corrnet, pvals):
 	'''
@@ -285,6 +311,9 @@ def mining(expr_df, deg_df, pool=1, sets=[50, 100, 150, 200, 250], alpha=0.05, c
 		* job - job name for output naming purposes. Default: job
 	'''
 	
+	#time the bugger
+	t0=time.time()
+	
 	#set up output
 	if not os.path.exists(job):
 		os.makedirs(job)
@@ -334,6 +363,10 @@ def mining(expr_df, deg_df, pool=1, sets=[50, 100, 150, 200, 250], alpha=0.05, c
 	#okay, we're done, close the file
 	print('Found '+str(modcount)+' modules in total')
 	writer.close()
+	
+	#how long did we take?
+	t1 = time.time()
+	print_time(t1, t0, 'Module mining')
 
 def find_modules_combination(modules, cat):
 	'''
@@ -417,7 +450,8 @@ def merging(expr_df, overlap=0.3, meancorr=0.9, corrfilt=0.8, job='job'):
 		* job - job name for output naming purposes. Default: job
 	'''
 	
-	print('Commencing redundant module merging.')
+	t0 = time.time()
+	print('Commencing within-condition-span redundant module merging.')
 	#let us read the modules first
 	raw_modules = read_modules(os.path.normcase(job+'/raw_modules.txt'))
 	#so, what categories will we need to look at?
@@ -428,7 +462,9 @@ def merging(expr_df, overlap=0.3, meancorr=0.9, corrfilt=0.8, job='job'):
 	for cat in categories:
 		#get the indices of the modules spanning that condition combination
 		inds = find_modules_combination(raw_modules, cat)
-		print(str(len(inds))+' modules: '+', '.join(cat))
+		#print updates only if large lots to process
+		if len(inds)>=100:
+			print('Large module clump: '+str(len(inds))+' ('+', '.join(cat)+')')
 		#sort the buggers on length
 		lengths = []
 		for i in range(len(inds)):
@@ -453,14 +489,118 @@ def merging(expr_df, overlap=0.3, meancorr=0.9, corrfilt=0.8, job='job'):
 			toggle = 1
 			while toggle==1:
 				(toggle, del_inds, raw_modules, mod_means) = singlemerging(toggle, del_inds, raw_modules, mod_means, inds, overlap, meancorr, corrfilt, cat, i, expr_df)
-	#wipe the modules to wipe, and sort gene membership of the survivors because yes, and write them out
+	#wipe the modules to wipe and write them out
 	if del_inds:
 		merged_modules = np.delete(raw_modules,del_inds,axis=0)
 	else:
 		merged_modules = raw_modules
 	print('Merged down to '+str(merged_modules.shape[0])+' modules.')
-	writer = open(os.path.normcase(job+'/merged_modules.txt'),'w')
-	for i in range(merged_modules.shape[0]):
-		merged_modules[i,4].sort()
-		write_module(writer,list(merged_modules[i,:]))
-	writer.close()
+	writer = write_modules(job+'/merged_modules.txt',modules)
+	#how long did we take?
+	t1 = time.time()
+	print_time(t1, t0, 'Module merging')
+
+def singlesweeping(raw_modules, del_inds, inds_sup, inds_sub, overlap):
+	'''
+	A helper function that executes individual instances of sweeping.
+	'''
+	
+	for ind1 in inds_sup:
+		#if it's swept already, we don't get to sweep with it
+		if ind1 in del_inds:
+			continue
+		for ind2 in inds_sub:
+			#same story. no need to re-sweep something that's already gone
+			if ind2 in del_inds:
+				continue
+			#if we made it here, we can try to sweep
+			#identify overlap
+			genes = list(set(raw_modules[ind1,4]) & set(raw_modules[ind2,4]))
+			#check if overlap big enough
+			if float(len(genes)) / float(len(raw_modules[ind2,4])) > overlap:
+				#module kill a smaller module. pow pow pow
+				del_inds.append(ind2)
+	#well, that's it
+	return(del_inds)
+
+def sweeping(overlap=0.5, job='job'):
+	'''
+	The sweeping of redundant Wigwams modules across subsets of condition spans.
+	
+	Input:
+		* overlap - what fraction of the gene membership of the module spanning fewer conditions that has to be made up of the overlap to trigger sweeping. Default: 0.5
+		* job - job name for output naming purposes. Default: job
+	'''
+	
+	t0 = time.time()
+	print('Commencing inter-condition-span redundant module sweeping.')
+	#let us read the modules first
+	raw_modules = read_modules(os.path.normcase(job+'/merged_modules.txt'))
+	#so, what categories will we need to look at?
+	categories = np.unique(raw_modules[:,0])
+	#dummy variable for deleted modules
+	del_inds = []
+	#this stuff above is all similar to what we had in merging.
+	#now we need to sort the categories on length, to actually sweep with big ones
+	lengths = []
+	for i in range(len(categories)):
+		lengths.append(len(categories[i]))
+	indmask = np.asarray([i[0] for i in sorted(enumerate(lengths), reverse=True, key=lambda x:x[1])])
+	categories = categories[indmask]
+	#all right then. have the categories, can commence sweeping
+	for i in range(len(categories)-1):
+		#if we've hit length two, that's it
+		if len(categories[i])==2:
+			break
+		#otherwise, time to get cooking
+		inds_sup = find_modules_combination(raw_modules, categories[i])
+		for j in range(i+1,len(categories)):
+			#can we sweep this condition subset?
+			if not set(categories[j]).issubset(set(categories[i])):
+				#we can't
+				continue
+			#if we're here, we can
+			inds_sub = find_modules_combination(raw_modules, categories[j])
+			#let's run the sweeping in a separate function to be aesthetic about the indents
+			del_inds = singlesweeping(raw_modules, del_inds, inds_sup, inds_sub, overlap)
+	#sweeping complete. kick out swept modules
+	if del_inds:
+		swept_modules = np.delete(raw_modules,del_inds,axis=0)
+	else:
+		swept_modules = raw_modules
+	print('Swept down to '+str(swept_modules.shape[0])+' modules.')
+	writer = write_modules(job+'/swept_modules.txt',swept_modules)
+	#how long did we take?
+	t1 = time.time()
+	print_time(t1, t0, 'Module sweeping')
+
+def thresholding(sizes, job='job'):
+	'''
+	Filter the final Wigwams output to modules of desired sizes.
+	
+	Input:
+		* sizes - an N-1-element list (where N is the number of conditions in your input), defining the desired sizes for modules from 2 to N in condition span.
+		* job - job name for output naming purposes. Default: job
+	'''
+	
+	#not sure why I'm even timing this. completeness? but this is super fast.
+	t0=time.time()
+	#let us read the modules first
+	raw_modules = read_modules(os.path.normcase(job+'/swept_modules.txt'))
+	#dummy variable for deleted modules
+	del_inds = []
+	#a-cracking we shall go
+	for i in range(raw_modules.shape[0]):
+		condlen = len(raw_modules[i,0])
+		if len(raw_modules[i,4])<sizes[condlen-2]:
+			del_inds.append(i)
+	#well that was quick. kick out filtered modules
+	if del_inds:
+		filtered_modules = np.delete(raw_modules,del_inds,axis=0)
+	else:
+		filtered_modules = raw_modules
+	print('Filtered down to '+str(filtered_modules.shape[0])+' modules.')
+	writer = write_modules(job+'/filtered_modules.txt',swept_modules)
+	#how long did we take?
+	t1 = time.time()
+	print_time(t1, t0, 'Module filtering')
