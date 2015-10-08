@@ -599,7 +599,7 @@ def thresholding(sizes, job='job'):
 	else:
 		filtered_modules = raw_modules
 	print('Filtered down to '+str(filtered_modules.shape[0])+' modules.')
-	writer = write_modules(job+'/filtered_modules.txt',swept_modules)
+	writer = write_modules(job+'/filtered_modules.txt',filtered_modules)
 	#how long did we take?
 	t1 = time.time()
 	print_time(t1, t0, 'Module filtering')
