@@ -3,6 +3,12 @@ import numpy as np
 import pandas as pd
 import wigwams as ww
 
+def str2bool(v):
+	'''
+	Helper function that turns the string v into a Boolean.
+	'''
+	return v.lower() in ("yes", "true", "t", "1")
+
 def parse_args():
 	'''
 	Parse all things command line, and then return them
@@ -12,17 +18,23 @@ def parse_args():
 	#literally the only required one being the expression CSV, as that's just needed for Wigwams to mine
 	#the rest has defaults in place, as used during the PRESTA runs
 	parser = argparse.ArgumentParser()
+	#dummy thing for making boolean arguments
+	parser.register('type','bool',str2bool)
+	#proper parsing
 	parser.add_argument('--Expression', dest='expr', type=argparse.FileType('r'), required=True, help='CSV file featuring the expression profiles of the genes across all the conditions. Gene names (case insensitive) in first column. First two rows for headers - row one for condition name, row two for time point')
-	parser.add_argument('--DEGs', dest='deg', type=argparse.FileType('r'), help='Optional binary CSV file featuring differential expression information across all the conditions. Gene names (case insensitive) in first column. Condition names in first row.')
-	parser.add_argument('--PoolNumber', dest='pool', type=int, default=1, help='Number of processes to run in module mining (to potentially parallelise the mining and accelerate the code). Default: 1')
+	parser.add_argument('--DEGs', dest='deg', default=None, type=argparse.FileType('r'), help='Optional binary CSV file featuring differential expression information across all the conditions. Gene names (case insensitive) in first column. Condition names in first row.')
+	parser.add_argument('--Standardise', dest='stand', default='True', type='bool', help='True/False toggle whether the data should be internally standardised (scaled to N(0,1)) on a per-gene, per-condition basis. Default: True')
+	parser.add_argument('--PoolNumber', dest='pool', type=int, default=1, help='Number of processes to run in module mining (to potentially parallelise the mining and accelerate the code). Default: 1 (not parallel)')
 	parser.add_argument('--Mining_SetSizes', dest='sets', type=int, default=[50, 100, 150, 200, 250], nargs='+', help='Module mining. Top co-expressed gene set sizes to be scanned for evidence of dependent co-expression. Provide as space delimited list. Default: 50 100 150 200 250')
 	parser.add_argument('--Mining_Alpha', dest='alpha', default=0.05, type=float, help='Module mining. The significance threshold for dependent co-expression testing, is Bonferroni corrected within the script. Default: 0.05')
 	parser.add_argument('--Mining_CorrelationNet', dest='corrnet', default=0.7, type=float, help='Module mining. In the case of scarce profiles, dependent co-expression testing is stopped if the top correlated genes stop being at least this PCC-correlated with the seed. Default: 0.7')
 	parser.add_argument('--Merging_Overlap', dest='merging_overlap', default=0.3, type=float, help='Module merging. The fraction of a module\'s members that have to be present in the overlap with another module spanning the same conditions to trigger merging. Default: 0.3')
 	parser.add_argument('--Merging_MeanCorrelation', dest='meancorr', default=0.9, type=float, help='Module merging. Initialise merging if the mean expression profiles of two modules across all of the conditions they span are at least this PCC-correlated, regardless of membership overlap. Default: 0.9')
 	parser.add_argument('--Merging_CorrelationFilter', dest='corrfilt', default=0.8, type=float, help='Module merging. If a gene\'s profile isn\'t at least this PCC-correlated with the mean profile of the larger module, don\'t transfer it over when merging, discarding it instead. Default: 0.8')
-	parser.add_argument('--Sweeping_Overlap', dest='sweep_overlap', default=0.5, type=float, help='Module sweeping. Discard a module spanning a subset of another module\'s conditions if its membership is made up of at least this proportion of the module with the condition superset. Default: 0.5')
-	parser.add_argument('--SizeThresholds', dest='thresh', default=[], type=int, nargs='+', help='Module size thresholding. Optional post-processing step to filter down the module list to modules of at least a given size. Provide as space delimited list, with first element being the desired minimal size of 2-condition modules and the last being the desired minimal size of modules across all the conditions. Default: [] (procedure off)')
+	parser.add_argument('--Sweeping_Overlap', dest='sweeping_overlap', default=0.5, type=float, help='Module sweeping. Discard a module spanning a subset of another module\'s conditions if its membership is made up of at least this proportion of the module with the condition superset. Default: 0.5')
+	parser.add_argument('--SizeThresholds', dest='thresh', default=None, type=int, nargs='+', help='Module size thresholding. Optional post-processing step to filter down the module list to modules of at least a given size. Provide as space delimited list, with first element being the desired minimal size of 2-condition modules and the last being the desired minimal size of modules across all the conditions. Default: None (procedure off)')
+	parser.add_argument('--Export_Annotation', dest='annot', default=None, type=argparse.FileType('r'), help='TSV (tab-separated file) with an annotation carrying additional information on the genes in the mining to include in the final export. First column must match the identifiers used, second column must be a public identifier, third column onwards optional. Please remove any "unmapped" information from the mapping. Default: None (no additional annotating of export)')
+	parser.add_argument('--Export_Hyperlink', dest='hyper', default=None, type=str, help='An optional extension to the annotation, adding Excel-friendly hyperlinks to genes identified in modules to the module export in a particular online resource. Include a generic link to finding the gene IDs in the second column of the annotation in the online resource of choice, with the second column identifier place indicated with {gene}. Please provide wrapped in quotes. Default: None (no additional hyperlinks)')
 	parser.add_argument('--JobName', dest='job', default='job', type=str, help='Job name for output naming purposes. Default: job')
 	args = parser.parse_args()
 	return args
@@ -122,7 +134,7 @@ def parse_dfs(args):
 	expr_df = parse_expr_df(args)
 
 	#parse the DEG CSV
-	if args.deg is not None:
+	if args.deg:
 		print('Parsing DEG CSV file...')
 		deg_df = pd.read_csv(args.deg, index_col=0, header=0)
 		#once again, caps gene names on sight
@@ -142,13 +154,11 @@ def parse_dfs(args):
 	sanity_checks(expr_df, deg_df, args)
 
 	#time for data standardisation
-	#temporarily commented out to evaluate run
-	'''
-	print('Standardising data...')
-	for cond in list(set(expr_df.columns.get_level_values('Treatment'))):
-		vals = expr_df.loc[:,cond].values
-		expr_df.loc[:,cond] = (vals - np.mean(vals,axis=1)[:,None]) / np.std(vals,axis=1)[:,None]
-	'''
+	if args.stand:
+		print('Standardising data...')
+		for cond in list(set(expr_df.columns.get_level_values('Treatment'))):
+			vals = expr_df.loc[:,cond].values
+			expr_df.loc[:,cond] = (vals - np.mean(vals,axis=1)[:,None]) / np.std(vals,axis=1)[:,None]
 	
 	#I think we have everything this function can do. spit it out for further consumption
 	return (expr_df, deg_df)
@@ -162,12 +172,21 @@ def wigwams_analysis_default(expr_df, deg_df, args):
 		* deg_df - PANDAS data frame of DEG status, as parsed by parse_dfs().
 		* args - command line arguments, as parsed by parse_dfs().
 	'''
+
 	#mining. the time consuming part
 	ww.mining(expr_df, deg_df, pool=args.pool, sets=args.sets, alpha = args.alpha, corrnet=args.corrnet, job=args.job)
 	#merging
 	ww.merging(expr_df, overlap=args.merging_overlap, meancorr=args.meancorr, corrfilt=args.corrfilt, job=args.job)
 	#sweeping
 	ww.sweeping(overlap=args.sweeping_overlap, job=args.job)
+	#thresholding if applicable
+	which_file = 'filtered'
+	if args.thresh:
+		ww.thresholding(sizes=args.thresh, job=args.job)
+	else:
+		which_file = 'swept'
+	#exporting
+	ww.export(expr_df, deg_df, which_file=which_file, annot_file=args.annot, hyper=args.hyper, stand=args.stand, job=args.job)
 
 def main():
 	#parse the command line stuff

@@ -6,6 +6,8 @@ import csv
 import scipy.stats as sps
 import os
 import time
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 def row_pearson(mat, prof):
 	'''
@@ -335,7 +337,7 @@ def mining(expr_df, deg_df, pool=1, sets=[50, 100, 150, 200, 250], alpha=0.05, c
 	#mining proper
 	print('Commencing module mining...')
 	modcount = 0
-	writer = open(os.path.normcase(job+'/raw_modules.txt'),'w')
+	writer = open(os.path.normcase(job+'/raw_modules.tsv'),'w')
 	if pool > 1:
 		#this stuff is kind of confusing. explanation inbound!
 		#_pool_init is the handle, pointing to the _pool_init function
@@ -452,7 +454,7 @@ def merging(expr_df, overlap=0.3, meancorr=0.9, corrfilt=0.8, job='job'):
 	t0 = time.time()
 	print('Commencing within-condition-span redundant module merging.')
 	#let us read the modules first
-	raw_modules = read_modules(os.path.normcase(job+'/raw_modules.txt'))
+	raw_modules = read_modules(os.path.normcase(job+'/raw_modules.tsv'))
 	#so, what categories will we need to look at?
 	categories = np.unique(raw_modules[:,0])
 	#dummy variable for deleted modules
@@ -494,7 +496,7 @@ def merging(expr_df, overlap=0.3, meancorr=0.9, corrfilt=0.8, job='job'):
 	else:
 		merged_modules = raw_modules
 	print('Merged down to '+str(merged_modules.shape[0])+' modules.')
-	writer = write_modules(job+'/merged_modules.txt',modules)
+	writer = write_modules(job+'/merged_modules.tsv',merged_modules)
 	#how long did we take?
 	t1 = time.time()
 	print_time(t1, t0, 'Module merging')
@@ -534,7 +536,7 @@ def sweeping(overlap=0.5, job='job'):
 	t0 = time.time()
 	print('Commencing inter-condition-span redundant module sweeping.')
 	#let us read the modules first
-	raw_modules = read_modules(os.path.normcase(job+'/merged_modules.txt'))
+	raw_modules = read_modules(os.path.normcase(job+'/merged_modules.tsv'))
 	#so, what categories will we need to look at?
 	categories = np.unique(raw_modules[:,0])
 	#dummy variable for deleted modules
@@ -568,7 +570,7 @@ def sweeping(overlap=0.5, job='job'):
 	else:
 		swept_modules = raw_modules
 	print('Swept down to '+str(swept_modules.shape[0])+' modules.')
-	writer = write_modules(job+'/swept_modules.txt',swept_modules)
+	writer = write_modules(job+'/swept_modules.tsv',swept_modules)
 	#how long did we take?
 	t1 = time.time()
 	print_time(t1, t0, 'Module sweeping')
@@ -585,7 +587,7 @@ def thresholding(sizes, job='job'):
 	#not sure why I'm even timing this. completeness? but this is super fast.
 	t0=time.time()
 	#let us read the modules first
-	raw_modules = read_modules(os.path.normcase(job+'/swept_modules.txt'))
+	raw_modules = read_modules(os.path.normcase(job+'/swept_modules.tsv'))
 	#dummy variable for deleted modules
 	del_inds = []
 	#a-cracking we shall go
@@ -599,7 +601,163 @@ def thresholding(sizes, job='job'):
 	else:
 		filtered_modules = raw_modules
 	print('Filtered down to '+str(filtered_modules.shape[0])+' modules.')
-	writer = write_modules(job+'/filtered_modules.txt',filtered_modules)
+	writer = write_modules(job+'/filtered_modules.tsv',filtered_modules)
 	#how long did we take?
 	t1 = time.time()
 	print_time(t1, t0, 'Module filtering')
+
+def make_figure(modules, i, expr_df, cond_span, stand, job):
+	'''
+	A helper function that makes the figure(s) for a single module.
+	'''
+	
+	for j in range(len(cond_span)):
+		#so we're plotting. let's get plotting
+		fig = plt.figure(figsize=(10,6))
+		#how subplot'ty are we getting tonight
+		#determine number of columns first
+		if len(cond_span[j])>4:
+			ncol = 3
+		else:
+			ncol = 2
+		#number of rows follows naturally
+		nrow = np.ceil(len(cond_span[j])/ncol)
+		#prepare plotting area
+		with sns.axes_style("ticks"):
+			fig,axes = plt.subplots(int(nrow),int(ncol),sharey=True,figsize=(10,6))
+		#go forth and plot
+		for k,axs in enumerate(axes.flatten()):
+			if not k < len(cond_span[j]):
+				#we're not plotting. hide this
+				axs.axis('off')
+				continue
+			#are we plotting XKCD pale red or XKCD midnight?
+			coltog = '#03012d'
+			if cond_span[j][k] in modules[i,0]:
+				coltog = '#d9544d'
+			#just plot things
+			axs.set_title(cond_span[j][k])
+			axs.margins(0.04)
+			#extract time points
+			tps = np.asarray(expr_df.loc[:,cond_span[j][k]].columns.get_level_values('Time').tolist())
+			for ii in range(len(tps)):
+				tps[ii] = float(tps[ii])
+			for gene in modules[i,4]:
+				axs.plot(tps, expr_df.loc[gene,cond_span[j][k]].values,color=coltog,linewidth=1)
+			axs.set_xlim([min(tps),max(tps)])
+		#label "outer" axes
+		for axs in axes[-1,:]:
+			axs.set_xlabel("Time")
+		for axs in axes[:,0]:
+			if stand:
+				axs.set_ylabel("Standardised Expression")
+			else:
+				axs.set_ylabel("Expression")
+		#whole plot complete
+		fname = 'Module'+str(i+1).zfill(int(np.floor(np.log10(modules.shape[0]))+1))
+		if len(cond_span)>1:
+			fname = fname+'_plot'+str(j)
+		plt.tight_layout()
+		sns.despine()
+		plt.savefig(os.path.normcase('plots-'+job+'/'+fname+'.svg'), bbox_inches='tight')
+		#make new figure later
+		plt.close()
+
+def export_module(modules, i, annot, writer):
+	'''
+	A helper function that prints a single module to a file.
+	'''
+	
+	for gene in modules[i,4]:
+		#generic header stuff first
+		writer.write('\n'+str(i+1)+'\t'+', '.join(modules[i,0])+'\t'+gene)
+		#now then. if there's an annot, write more stuff
+		if annot is not None:
+			#make extra tab happen
+			writer.write('\t')
+			holder = annot[annot[:,0]==gene,1:]
+			#we gotta check if we got a hit
+			if holder.size > 0:
+				#we got a hit b0ss. just in case make it be first hit
+				writer.write('\t'.join(holder[0,:]))
+			else:
+				#no hit
+				writer.write('UNMAPPED')
+
+def export(expr_df, deg_df, which_file='filtered', annot_file=None, hyper=None, stand=True, job='job'):
+	'''
+	A function that takes the modules from the "module dump" format and makes a proper export.
+	
+	Input:
+		* expr_df - PANDAS data frame of gene expression
+		* deg_df - PANDAS data frame of DEG status, only used to extract proper condition order
+		* which_file - which file to actually export. Default: filtered
+		* annot - optional TSV with the expr_df identifiers in the first column, public identifiers in the second, and any additional information in third and onward. Default: None (off)
+		* hyper - base URL to create Excel-friendly hyperlinks in the module export for each gene in a module. Provide public gene name placement with {gene} in the string. Default: None (off)
+		* stand - Boolean informing whether the data was internally standardised or not, for axis labelling purposes. Default: True
+		* job - job name for original output identification. Default: job
+	'''
+	
+	t0=time.time()
+	#start things off by sorting out the annot hyper situation
+	if annot_file:
+		#apparently the argparse thing opens the file by itself
+		annot = csv.reader(annot_file,delimiter='\t')
+		annot = np.asarray(list(annot))
+		#capitalise the first column to match our names. leave second column be just in case
+		for i in range(annot.shape[0]):
+			annot[i,0] = annot[i,0].upper()
+	else:
+		annot = None
+	if annot_file and hyper:
+		annot2 = np.empty((annot.shape[0], annot.shape[1]+1), dtype=object)
+		annot2[:,0] = annot[:,0]
+		annot2[:,1] = annot[:,1]
+		annot2[0,2] = 'Hyperlink'
+		if annot.shape[1]>1:
+			annot2[:,3:]=annot[:,2:]
+		for i in range(annot2.shape[0]):
+			annot2[i,2] = '=HYPERLINK("'+hyper.format(gene=annot2[i,1])+'", "LINK")'
+		annot = annot2
+	#okay, this should hopefully sort out the annotation situation. it's in and formatted
+	
+	#set up plot output folder
+	if not os.path.exists('plots-'+job):
+		os.makedirs('plots-'+job)
+	#import appropriate modules
+	modules = read_modules(os.path.normcase(job+'/'+which_file+'_modules.tsv'))
+	#so, what are our conditions?
+	conditions = np.asarray(deg_df.columns.tolist())
+	#set up individual plot sizes. maximum of 9 plots per thing
+	plot_counts = np.ceil(len(conditions)/9)
+	plot_counts = np.zeros(int(plot_counts))+np.floor(len(conditions)/plot_counts)
+	overhang = len(conditions)%len(plot_counts)
+	for i in range(overhang):
+		plot_counts[i] +=1
+	cond_ranges = np.zeros(len(plot_counts)+1)
+	cond_ranges[1:] = np.cumsum(plot_counts)
+	cond_span=[]
+	for i in range(len(plot_counts)):
+		holder = conditions[int(cond_ranges[i]):int(cond_ranges[i+1])]
+		cond_span.append(holder)
+	#so, we know how the plots will be distributed if there's 10+ conditions.
+	#this is fringe as hell, but you never know what people will feed into these things.
+	
+	#crack open a writer handle and prepare the header
+	writer = open('exported_modules-'+job+'.tsv','w')
+	writer.write('Module ID\tCondition Span\t')
+	if annot_file:
+		writer.write('\t'.join(annot[0,:]))
+	else:
+		writer.write('Gene Identifier')
+	for i in range(modules.shape[0]):
+		print('Exporting module '+str(i+1)+'...')
+		#we're printing the i'th module
+		make_figure(modules, i, expr_df, cond_span, stand, job)
+		#figure status - done
+		export_module(modules,i,annot,writer)
+	#there we go. that's a wrap. 
+	writer.close()
+	#how long did we take?
+	t1 = time.time()
+	print_time(t1, t0, 'Module export')
