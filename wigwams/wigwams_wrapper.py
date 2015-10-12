@@ -230,7 +230,7 @@ def wigwams_analysis_new(expr_df, deg_df, args):
 	'''
 	
 	#mining. the time consuming part
-	#ww.mining(expr_df, deg_df, pool=args.pool, sets=args.sets, alpha = args.alpha, corrnet=args.corrnet, legacy=args.leg, job=args.job)
+	ww.mining(expr_df, deg_df, pool=args.pool, sets=args.sets, alpha = args.alpha, corrnet=args.corrnet, legacy=args.leg, job=args.job)
 	#now, perform merging -> thresholding -> sweeping in succession for decreasing condition spans
 	#loop over different "building block" sweeping stringencies
 	swov_best = 0
