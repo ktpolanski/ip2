@@ -190,6 +190,22 @@ def print_time(t1, t0, jobname):
 	holderstring = 'Took %d:%02d:%02d. '+jobname+' complete.'
 	print(holderstring % (h, m, s))
 
+def module_size_check(modules):
+	'''
+	Helper function that assesses the total module size and the number of unique genes.
+	'''
+	
+	totsize = 0
+	genes = []
+	for i in range(modules.shape[0]):
+		totsize += len(modules[i,4])
+		genes = list(set(genes).union(set(modules[i,4])))
+	#okay, we gots what we wants
+	print('Number of modules: '+str(modules.shape[0]))
+	print('Total module sizes: '+str(totsize))
+	print('Number of unique genes: '+str(len(genes)))
+	return(len(genes)/totsize)
+
 def singlemoduletest(corrgenes, singleset, comb, singlepvals, deg_df, degconds):
 	'''
 	A helper function to assess a single module
@@ -207,7 +223,7 @@ def singlemoduletest(corrgenes, singleset, comb, singlepvals, deg_df, degconds):
 	#(p-values start at an overlap of 0, which is essentially what we're seeing in that case)
 	return (overlap, singlepvals[len(overlap)-1])
 
-def singlemining(seed, expr_df, deg_df, sets, alpha, corrnet, pvals):
+def singlemining(seed, expr_df, deg_df, sets, alpha, corrnet, pvals, legacy):
 	'''
 	The function that actually does the mining for a single seed gene.
 	
@@ -219,6 +235,7 @@ def singlemining(seed, expr_df, deg_df, sets, alpha, corrnet, pvals):
 		* alpha - the significance to use in the testing
 		* corrnet - the correlation threshold to cut off mining
 		* pvals - the pre-generated p-values
+		* legacy - toggle between most significant and biggest significant module output
 	'''
 	
 	#So, where's our seed DEG in?
@@ -270,7 +287,12 @@ def singlemining(seed, expr_df, deg_df, sets, alpha, corrnet, pvals):
 			continue
 		#if we're here, then there is something worth it. let's dig it out!
 		#note the [0][0] - np.where provides a bizarrely nested output and this digs out the actual value
-		ind = np.where(phold == np.min(phold))[0][0]
+		if legacy:
+			ind = np.where(phold == np.min(phold))[0][0]
+		else:
+			#new idea to increase unique genes, pick biggest significant module
+			#this will be the last p-value in the vector that clears the alpha
+			ind = np.where(phold <= alpha)[0][-1]
 		(overlap, pvalue) = singlemoduletest(corrgenes, sets[ind], comb, pvals[len(comb)-2][i], deg_df, degconds)
 		#prepare module!
 		condspan = degconds[np.asarray(comb)]
@@ -278,17 +300,18 @@ def singlemining(seed, expr_df, deg_df, sets, alpha, corrnet, pvals):
 	#spit out the output
 	return out
 
-def _pool_init(expr_df_, deg_df_, sets_, alpha_, corrnet_, pvals_):
+def _pool_init(expr_df_, deg_df_, sets_, alpha_, corrnet_, pvals_, legacy_):
 	'''
 	Initialising the "global" variables for the parallel module mining workers.
 	'''
-	global expr_df, deg_df, sets, alpha, corrnet, pvals
+	global expr_df, deg_df, sets, alpha, corrnet, pvals, legacy
 	expr_df = expr_df_
 	deg_df  = deg_df_
 	sets = sets_
 	alpha = alpha_
 	corrnet = corrnet_
 	pvals = pvals_
+	legacy = legacy_
 
 def pool_singlemining(seed):
 	'''
@@ -296,9 +319,9 @@ def pool_singlemining(seed):
 	'''
 	
 	#take all the things that _pool_init made "global" for the pool running and call the actual function
-	return singlemining(seed, expr_df, deg_df, sets, alpha, corrnet, pvals)
+	return singlemining(seed, expr_df, deg_df, sets, alpha, corrnet, pvals, legacy)
 
-def mining(expr_df, deg_df, pool=1, sets=[50, 100, 150, 200, 250], alpha=0.05, corrnet=0.7, job='job'):
+def mining(expr_df, deg_df, pool=1, sets=[50, 100, 150, 200, 250], alpha=0.05, corrnet=0.7, legacy=True, job='job'):
 	'''
 	The Wigwams analysis proper, mining for instances of dependent co-expression across multiple conditions.
 	
@@ -309,6 +332,7 @@ def mining(expr_df, deg_df, pool=1, sets=[50, 100, 150, 200, 250], alpha=0.05, c
 		* sets - a list of the top co-expressed gene set sizes for use in co-expression evaluation. Default: [50, 100, 150, 200, 250]
 		* alpha - the significance threshold for use in statistical evaluation, Bonferroni corrected within the code. Default: 0.05
 		* corrnet - if the top co-expressed genes stop being at least this correlated with the seed, sets stop being evaluated for that seed. Default: 0.7
+		* legacy - True to run as in Polanski et al 2014, False to pick the longest statistically relevant module instead of the most statistically relevant. Default: True
 		* job - job name for output naming purposes. Default: job
 	'''
 	
@@ -342,9 +366,10 @@ def mining(expr_df, deg_df, pool=1, sets=[50, 100, 150, 200, 250], alpha=0.05, c
 		#this stuff is kind of confusing. explanation inbound!
 		#_pool_init is the handle, pointing to the _pool_init function
 		#this function will be called once for every pool creation
+		#this will pass all the actual non-seed variables to the pools
 		#the pools will subsequently be used to chew through all the seeds
 		#(note the tuple after the pointer, those are the arguments that will be passed to the initialiser)
-		p = mp.Pool(pool, _pool_init, (expr_df, deg_df, sets, alpha, corrnet, pvals))
+		p = mp.Pool(pool, _pool_init, (expr_df, deg_df, sets, alpha, corrnet, pvals, legacy))
 		#imap_unordered makes the output unordered, but provides it fast
 		#this is an iterator, so you for over it to process the things as they come out
 		for out in p.imap_unordered(pool_singlemining, seeds):
@@ -355,7 +380,7 @@ def mining(expr_df, deg_df, pool=1, sets=[50, 100, 150, 200, 250], alpha=0.05, c
 					print('Found '+str(modcount)+' modules so far...')
 	else:
 		for seed in seeds:
-			out = singlemining(seed, expr_df, deg_df, sets, alpha, corrnet, pvals)
+			out = singlemining(seed, expr_df, deg_df, sets, alpha, corrnet, pvals, legacy)
 			for module in out:
 				write_module(writer, module)
 				modcount +=1
@@ -439,7 +464,7 @@ def singlemerging(toggle, del_inds, raw_modules, mod_means, inds, overlap, meanc
 	#all this stuff we need back as we may have changed it
 	return (toggle, del_inds, raw_modules, mod_means)
 
-def merging(expr_df, overlap=0.3, meancorr=0.9, corrfilt=0.8, job='job'):
+def merging(expr_df, overlap=0.3, meancorr=0.9, corrfilt=0.8, condspan = None, which_file='raw', job='job'):
 	'''
 	The merging of redundant Wigwams modules spanning the same conditions.
 	
@@ -448,19 +473,27 @@ def merging(expr_df, overlap=0.3, meancorr=0.9, corrfilt=0.8, job='job'):
 		* overlap - what fraction of the smaller module size has to be made of the overlap to trigger merging. Default: 0.3
 		* meancorr - how correlated the means of modules have to be to trigger merging independent of membership overlap. Default: 0.9
 		* corrfilt - how correlated the genes have to be to the mean of the larger module to get moved over. Default: 0.8
+		* condspan - if provided, only merge modules spanning exactly condspan conditions in total. Default: None (just merge everything)
+		* which_file - which file to import and merge the modules from. Default: raw
 		* job - job name for output naming purposes. Default: job
 	'''
 	
 	t0 = time.time()
 	print('Commencing within-condition-span redundant module merging.')
+	if condspan:
+		print('Performing procedure for modules spanning '+str(condspan)+' conditions.')
 	#let us read the modules first
-	raw_modules = read_modules(os.path.normcase(job+'/raw_modules.tsv'))
+	raw_modules = read_modules(os.path.normcase(job+'/'+which_file+'_modules.tsv'))
 	#so, what categories will we need to look at?
 	categories = np.unique(raw_modules[:,0])
 	#dummy variable for deleted modules
 	del_inds = []
 	#alright. loop over the categories and get stuff done
 	for cat in categories:
+		#so, are we gonna even merge stuff in this category?
+		if condspan:
+			if len(cat) != condspan:
+				continue
 		#get the indices of the modules spanning that condition combination
 		inds = find_modules_combination(raw_modules, cat)
 		#print updates only if large lots to process
@@ -524,19 +557,23 @@ def singlesweeping(raw_modules, del_inds, inds_sup, inds_sub, overlap):
 	#well, that's it
 	return(del_inds)
 
-def sweeping(overlap=0.5, job='job'):
+def sweeping(overlap=0.5, condspan=None, which_file='merged', job='job'):
 	'''
 	The sweeping of redundant Wigwams modules across subsets of condition spans.
 	
 	Input:
 		* overlap - what fraction of the gene membership of the module spanning fewer conditions that has to be made up of the overlap to trigger sweeping. Default: 0.5
+		* condspan - if provided, only sweep from modules spanning exactly condspan conditions in total. Default: None (just sweep from everything)
+		* which_file - which file to run sweeping on. Default: merged
 		* job - job name for output naming purposes. Default: job
 	'''
 	
 	t0 = time.time()
 	print('Commencing inter-condition-span redundant module sweeping.')
+	if condspan:
+		print('Performing procedure for modules spanning '+str(condspan)+' conditions.')
 	#let us read the modules first
-	raw_modules = read_modules(os.path.normcase(job+'/merged_modules.tsv'))
+	raw_modules = read_modules(os.path.normcase(job+'/'+which_file+'_modules.tsv'))
 	#so, what categories will we need to look at?
 	categories = np.unique(raw_modules[:,0])
 	#dummy variable for deleted modules
@@ -553,6 +590,10 @@ def sweeping(overlap=0.5, job='job'):
 		#if we've hit length two, that's it
 		if len(categories[i])==2:
 			break
+		#otherwise, if condspan, are we sweeping this combination?
+		if condspan:
+			if len(categories[i]) != condspan:
+				continue
 		#otherwise, time to get cooking
 		inds_sup = find_modules_combination(raw_modules, categories[i])
 		for j in range(i+1,len(categories)):
@@ -575,24 +616,33 @@ def sweeping(overlap=0.5, job='job'):
 	t1 = time.time()
 	print_time(t1, t0, 'Module sweeping')
 
-def thresholding(sizes, job='job'):
+def thresholding(sizes, condspan=None, which_file='swept', job='job'):
 	'''
 	Filter the final Wigwams output to modules of desired sizes.
 	
 	Input:
 		* sizes - an N-1-element list (where N is the number of conditions in your input), defining the desired sizes for modules from 2 to N in condition span.
+		* condspan - if provided, only filter the modules spanning exactly condspan conditions. Default: None (just filter everything)
+		* which_file - which file to import modules from and filter them on size. Default: swept
 		* job - job name for output naming purposes. Default: job
 	'''
 	
 	#not sure why I'm even timing this. completeness? but this is super fast.
 	t0=time.time()
+	print('Commencing filtering modules on size.')
+	if condspan:
+		print('Performing procedure for modules spanning '+str(condspan)+' conditions.')
 	#let us read the modules first
-	raw_modules = read_modules(os.path.normcase(job+'/swept_modules.tsv'))
+	raw_modules = read_modules(os.path.normcase(job+'/'+which_file+'_modules.tsv'))
 	#dummy variable for deleted modules
 	del_inds = []
 	#a-cracking we shall go
 	for i in range(raw_modules.shape[0]):
 		condlen = len(raw_modules[i,0])
+		#condspan ahoy - can we filter this guy
+		if condspan:
+			if condlen != condspan:
+				continue
 		if len(raw_modules[i,4])<sizes[condlen-2]:
 			del_inds.append(i)
 	#well that was quick. kick out filtered modules
@@ -661,7 +711,7 @@ def make_figure(modules, i, expr_df, cond_span, stand, job):
 		sns.despine()
 		plt.savefig(os.path.normcase('plots-'+job+'/'+fname+'.svg'), bbox_inches='tight')
 		#make new figure later
-		plt.close()
+		plt.close("all")
 
 def export_module(modules, i, annot, writer):
 	'''
