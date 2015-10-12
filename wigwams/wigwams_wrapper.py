@@ -25,7 +25,7 @@ def parse_args():
 	parser.add_argument('--Expression', dest='expr', type=argparse.FileType('r'), required=True, help='CSV file featuring the expression profiles of the genes across all the conditions. Gene names (case insensitive) in first column. First two rows for headers - row one for condition name, row two for time point.')
 	parser.add_argument('--DEGs', dest='deg', default=None, type=argparse.FileType('r'), help='Optional binary CSV file featuring differential expression information across all the conditions. Gene names (case insensitive) in first column. Condition names in first row.')
 	parser.add_argument('--Standardise', dest='stand', default='True', type='bool', help='True/False toggle whether the data should be internally standardised (scaled to N(0,1)) on a per-gene, per-condition basis. Default: True')
-	parser.add_argument('--Legacy', dest='leg', default='True', type='bool', help='True/False toggle to determine whether the algorithm is to run as described in Polanski et al. 2014 (True) or with improved redundancy removal across multiple conditions, yielding slightly less overwhelming modules across short condition spans (False). Default: True')
+	parser.add_argument('--Legacy', dest='leg', default='True', type='bool', help='True/False toggle to determine whether the algorithm is to run as described in Polanski et al. 2014 (True) or optimising redundancy removal, yielding less genes in the output but with a higher ratio of unique genes to total module size (False). Default: True')
 	parser.add_argument('--PoolNumber', dest='pool', type=int, default=1, help='Number of processes to run in module mining (to potentially parallelise the mining and accelerate the code). Default: 1 (not parallel)')
 	parser.add_argument('--Mining_SetSizes', dest='sets', type=int, default=[50, 100, 150, 200, 250], nargs='+', help='Module mining. Top co-expressed gene set sizes to be scanned for evidence of dependent co-expression. Provide as space delimited list. Default: 50 100 150 200 250')
 	parser.add_argument('--Mining_Alpha', dest='alpha', default=0.05, type=float, help='Module mining. The significance threshold for dependent co-expression testing, is Bonferroni corrected within the script. Default: 0.05')
@@ -34,7 +34,7 @@ def parse_args():
 	parser.add_argument('--Merging_MeanCorrelation', dest='meancorr', default=0.9, type=float, help='Module merging. Initialise merging if the mean expression profiles of two modules across all of the conditions they span are at least this PCC-correlated, regardless of membership overlap. Default: 0.9')
 	parser.add_argument('--Merging_CorrelationFilter', dest='corrfilt', default=0.8, type=float, help='Module merging. If a gene\'s profile isn\'t at least this PCC-correlated with the mean profile of the larger module, don\'t transfer it over when merging, discarding it instead. Default: 0.8')
 	parser.add_argument('--Sweeping_Overlap', dest='sweeping_overlap', default=0.5, type=float, help='Module sweeping. Discard a module spanning a subset of another module\'s conditions if its membership is made up of at least this proportion of the module with the condition superset. In non-legacy mode this becomes the upper bound of the sweeping thresholds to evaluate. Default: 0.5')
-	parser.add_argument('--Sweeping_Overlap_LowBound', dest = 'sweep_low', default = 0.1, type=float, help='Module sweeping. In non-legacy mode, the lower bound of sweeping to evaluate, with 0.05 resolution between this and the upper bound. Default: 0.1')
+	parser.add_argument('--Sweeping_Overlap_LowBound', dest = 'sweep_low', default = 0.1, type=float, help='Module sweeping. In non-legacy mode, the lower bound of sweeping to evaluate, with 0.05 resolution between this and the upper bound. Ignored in legacy mode. Default: 0.1')
 	parser.add_argument('--SizeThresholds', dest='thresh', default=None, type=int, nargs='+', help='Module size thresholding. Optional post-processing step to filter down the module list to modules of at least a given size. Provide as space delimited list, with first element being the desired minimal size of 2-condition modules and the last being the desired minimal size of modules across all the conditions. Default: None (procedure off)')
 	parser.add_argument('--Export_Annotation', dest='annot', default=None, type=argparse.FileType('r'), help='TSV (tab-separated file) with an annotation carrying additional information on the genes in the mining to include in the final export. First column must match the identifiers used, second column must be a public identifier, third column onwards optional. Please remove any "unmapped" information from the mapping. Default: None (no additional annotating of export)')
 	parser.add_argument('--Export_Hyperlink', dest='hyper', default=None, type=str, help='An optional extension to the annotation, adding Excel-friendly hyperlinks to genes identified in modules to the module export in a particular online resource. Include a generic link to finding the gene IDs in the second column of the annotation in the online resource of choice, with the second column identifier place indicated with {gene}. Please provide wrapped in quotes. Default: None (no additional hyperlinks)')
@@ -230,7 +230,7 @@ def wigwams_analysis_new(expr_df, deg_df, args):
 	'''
 	
 	#mining. the time consuming part
-	ww.mining(expr_df, deg_df, pool=args.pool, sets=args.sets, alpha = args.alpha, corrnet=args.corrnet, legacy=args.leg, job=args.job)
+	#ww.mining(expr_df, deg_df, pool=args.pool, sets=args.sets, alpha = args.alpha, corrnet=args.corrnet, legacy=args.leg, job=args.job)
 	#now, perform merging -> thresholding -> sweeping in succession for decreasing condition spans
 	#loop over different "building block" sweeping stringencies
 	swov_best = 0
@@ -242,8 +242,11 @@ def wigwams_analysis_new(expr_df, deg_df, args):
 			swov_best = swov
 			print('New least redundant output.')
 	#our export swoops in to pick up where the sweeping on two would have happened, so export the current sweepfile
-	print('Least redundant output obtained for sweeping overlap ratio of '+str(swov_best)+'. Preparing output.')
-	run_single_condspan(expr_df, deg_df, args, swov_best)
+	print('Least redundant output obtained for sweeping overlap ratio of '+str(swov_best)+'.')
+	#if the best values were obtained for the last one we checked, easy enough to just keep it
+	if swov != swov_best:
+		print('Preparing output.')
+		run_single_condspan(expr_df, deg_df, args, swov_best)
 	sweepfile = 'merged'
 	if args.thresh:
 		sweepfile = 'filtered'
