@@ -106,7 +106,9 @@ def pvalue_pregeneration(set_sizes,genes,stress_count):
 			pvals_set = pvals_prev[i]
 			curr_pdf = np.zeros(set+1)
 			for j in range(0,set):
-				curr_pdf[j] = pvals_set[j] + np.log10(1 - np.power(10,(pvals_set[j+1]-pvals_set[j])))
+				#curr_pdf[j] = pvals_set[j] + np.log10(1 - np.power(10,(pvals_set[j+1]-pvals_set[j])))
+				#numeric improvement. only matters for super ultra tiny cases, doesn't affect significance
+				curr_pdf[j] = pvals_set[j] + np.log1p(-10**(pvals_set[j+1]-pvals_set[j])) / np.log(10)
 			#the final element is the last test result
 			curr_pdf[set] = pvals_set[set]
 			#test proper time, everything is ready
@@ -321,7 +323,7 @@ def pool_singlemining(seed):
 	#take all the things that _pool_init made "global" for the pool running and call the actual function
 	return singlemining(seed, expr_df, deg_df, sets, alpha, corrnet, pvals, legacy)
 
-def mining(expr_df, deg_df, pool=1, sets=[50, 100, 150, 200, 250], alpha=0.05, corrnet=0.7, legacy=True, job='job'):
+def mining(expr_df, deg_df, pool=1, sets=[50, 100, 150, 200, 250], alpha=0.05, corrnet=0.7, legacy=False, job='job'):
 	'''
 	The Wigwams analysis proper, mining for instances of dependent co-expression across multiple conditions.
 	
@@ -332,7 +334,7 @@ def mining(expr_df, deg_df, pool=1, sets=[50, 100, 150, 200, 250], alpha=0.05, c
 		* sets - a list of the top co-expressed gene set sizes for use in co-expression evaluation. Default: [50, 100, 150, 200, 250]
 		* alpha - the significance threshold for use in statistical evaluation, Bonferroni corrected within the code. Default: 0.05
 		* corrnet - if the top co-expressed genes stop being at least this correlated with the seed, sets stop being evaluated for that seed. Default: 0.7
-		* legacy - True to run as in Polanski et al 2014, False to pick the longest statistically relevant module instead of the most statistically relevant. Default: True
+		* legacy - True to run as in Polanski et al 2014, False to pick the longest statistically relevant module instead of the most statistically relevant. Default: False
 		* job - job name for output naming purposes. Default: job
 	'''
 	
@@ -464,7 +466,7 @@ def singlemerging(toggle, del_inds, raw_modules, mod_means, inds, overlap, meanc
 	#all this stuff we need back as we may have changed it
 	return (toggle, del_inds, raw_modules, mod_means)
 
-def merging(expr_df, overlap=0.3, meancorr=0.9, corrfilt=0.8, condspan = None, which_file='raw', job='job'):
+def merging(expr_df, overlap=0.3, meancorr=0.9, corrfilt=0.8, condspan = None, which_file='raw', legacy=False, job='job'):
 	'''
 	The merging of redundant Wigwams modules spanning the same conditions.
 	
@@ -475,6 +477,7 @@ def merging(expr_df, overlap=0.3, meancorr=0.9, corrfilt=0.8, condspan = None, w
 		* corrfilt - how correlated the genes have to be to the mean of the larger module to get moved over. Default: 0.8
 		* condspan - if provided, only merge modules spanning exactly condspan conditions in total. Default: None (just merge everything)
 		* which_file - which file to import and merge the modules from. Default: raw
+		* legacy - True to run as in Polanski et al 2014, False to have an extra loop over the entire merging to assess the completeness of the procedure. Default: False
 		* job - job name for output naming purposes. Default: job
 	'''
 	
@@ -486,50 +489,62 @@ def merging(expr_df, overlap=0.3, meancorr=0.9, corrfilt=0.8, condspan = None, w
 	raw_modules = read_modules(os.path.normcase(job+'/'+which_file+'_modules.tsv'))
 	#so, what categories will we need to look at?
 	categories = np.unique(raw_modules[:,0])
-	#dummy variable for deleted modules
-	del_inds = []
-	#alright. loop over the categories and get stuff done
-	for cat in categories:
-		#so, are we gonna even merge stuff in this category?
-		if condspan:
-			if len(cat) != condspan:
-				continue
-		#get the indices of the modules spanning that condition combination
-		inds = find_modules_combination(raw_modules, cat)
-		#print updates only if large lots to process
-		if len(inds)>=100:
-			print('Large module clump: '+str(len(inds))+' ('+', '.join(cat)+')')
-		#sort the buggers on length
-		lengths = []
-		for i in range(len(inds)):
-			lengths.append(len(raw_modules[inds[i],4]))
-		indmask = np.asarray([i[0] for i in sorted(enumerate(lengths), reverse=True, key=lambda x:x[1])])
-		inds = inds[indmask]
-		#okay, now we have them largest to smallest
-		#precompute module means
-		mod_means = []
-		for i in range(len(inds)):
-			holder = []
-			for cond in cat:
-				holder.append(np.mean(expr_df.loc[raw_modules[inds[i],4],cond],axis=0))
-			mod_means.append(holder)
-		#commence merging!
-		for i in range(len(inds)-1):
-			#this is the module we're gonna try to merge the others with
-			#no point merging if it's already merged into something
-			if inds[i] in del_inds:
-				continue
-			#repeat merging until nothing merged
-			toggle = 1
-			while toggle==1:
-				(toggle, del_inds, raw_modules, mod_means) = singlemerging(toggle, del_inds, raw_modules, mod_means, inds, overlap, meancorr, corrfilt, cat, i, expr_df)
-	#wipe the modules to wipe and write them out
-	if del_inds:
-		merged_modules = np.delete(raw_modules,del_inds,axis=0)
-	else:
-		merged_modules = raw_modules
-	print('Merged down to '+str(merged_modules.shape[0])+' modules.')
-	writer = write_modules(job+'/merged_modules.tsv',merged_modules)
+	
+	#super, super corner case - turns out that sometimes in merging, mergeable modules are constructed later on down
+	#example - a large module spanning some conditions is made, it leaves some crumbs which don't quite fit
+	#the crumbs are pieced together to form something that looks redundant to the original
+	#as such, we need to loop merging until that sort of stuff is gone
+	
+	#dummy variable for deleted modules - full, to trigger loop
+	del_inds = [1]
+	while del_inds:
+		#we're in the loop. del_inds means we have done some merging in the prior iteration
+		#but now we blank it to actually evaluate stuff
+		del_inds = []
+		#alright. loop over the categories and get stuff done
+		for cat in categories:
+			#so, are we gonna even merge stuff in this category?
+			if condspan:
+				if len(cat) != condspan:
+					continue
+			#get the indices of the modules spanning that condition combination
+			inds = find_modules_combination(raw_modules, cat)
+			#print updates only if large lots to process
+			if len(inds)>=100:
+				print('Large module clump: '+str(len(inds))+' ('+', '.join(cat)+')')
+			#sort the buggers on length
+			lengths = []
+			for i in range(len(inds)):
+				lengths.append(len(raw_modules[inds[i],4]))
+			indmask = np.asarray([i[0] for i in sorted(enumerate(lengths), reverse=True, key=lambda x:x[1])])
+			inds = inds[indmask]
+			#okay, now we have them largest to smallest
+			#precompute module means
+			mod_means = []
+			for i in range(len(inds)):
+				holder = []
+				for cond in cat:
+					holder.append(np.mean(expr_df.loc[raw_modules[inds[i],4],cond],axis=0))
+				mod_means.append(holder)
+			#commence merging!
+			for i in range(len(inds)-1):
+				#this is the module we're gonna try to merge the others with
+				#no point merging if it's already merged into something
+				if inds[i] in del_inds:
+					continue
+				#repeat merging until nothing merged
+				toggle = 1
+				while toggle==1:
+					(toggle, del_inds, raw_modules, mod_means) = singlemerging(toggle, del_inds, raw_modules, mod_means, inds, overlap, meancorr, corrfilt, cat, i, expr_df)
+		#wipe the modules to wipe if there are any
+		if del_inds:
+			raw_modules = np.delete(raw_modules,del_inds,axis=0)
+			if legacy:
+				#this just to emulate old times for old times sake
+				del_inds=[]
+	#Okay, so we're done with merging. Export!
+	print('Merged down to '+str(raw_modules.shape[0])+' modules.')
+	writer = write_modules(job+'/merged_modules.tsv',raw_modules)
 	#how long did we take?
 	t1 = time.time()
 	print_time(t1, t0, 'Module merging')
