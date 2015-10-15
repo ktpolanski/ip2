@@ -190,7 +190,7 @@ def print_time(t1, t0, jobname):
 	'''
 	m, s = divmod(round(t1-t0), 60)
 	h, m = divmod(m, 60)
-	holderstring = 'Took %d:%02d:%02d. '+jobname+' complete.'
+	holderstring = 'Took %d:%02d:%02d. '+jobname+' complete.\n'
 	sys.stdout.write(holderstring % (h, m, s))
 
 def module_size_check(modules):
@@ -204,9 +204,9 @@ def module_size_check(modules):
 		totsize += len(modules[i,4])
 		genes = list(set(genes).union(set(modules[i,4])))
 	#okay, we gots what we wants
-	sys.stdout.write('Number of modules: '+str(modules.shape[0]))
-	sys.stdout.write('Total module sizes: '+str(totsize))
-	sys.stdout.write('Number of unique genes: '+str(len(genes)))
+	sys.stdout.write('Number of modules: '+str(modules.shape[0])+'\n')
+	sys.stdout.write('Total module sizes: '+str(totsize)+'\n')
+	sys.stdout.write('Number of unique genes: '+str(len(genes))+'\n')
 	return(len(genes)/totsize)
 
 def singlemoduletest(corrgenes, singleset, comb, singlepvals, deg_df, degconds):
@@ -353,7 +353,7 @@ def mining(expr_df, deg_df, pool=1, sets=[50, 100, 150, 200, 250], alpha=0.05, c
 	seeds = deg_df[deg_df.sum(axis=1)>1].index.tolist()
 	
 	#pre-generate p-values
-	sys.stdout.write('Pre-generating p-values...')
+	sys.stdout.write('Pre-generating p-values...\n')
 	pvals = pvalue_pregeneration(sets, len(deg_df.index), len(deg_df.columns))
 	
 	#fix up the alpha - make it be log10 scale and Bonferroni'd
@@ -362,7 +362,7 @@ def mining(expr_df, deg_df, pool=1, sets=[50, 100, 150, 200, 250], alpha=0.05, c
 	alpha = np.log10(alpha / np.sum(tcount))
 	
 	#mining proper
-	sys.stdout.write('Commencing module mining...')
+	sys.stdout.write('Commencing module mining...\n')
 	modcount = 0
 	writer = open(os.path.normcase(job+'/raw_modules.tsv'),'w')
 	if pool > 1:
@@ -380,7 +380,7 @@ def mining(expr_df, deg_df, pool=1, sets=[50, 100, 150, 200, 250], alpha=0.05, c
 				write_module(writer, module)
 				modcount += 1
 				if np.mod(modcount,1000)==0:
-					sys.stdout.write('Found '+str(modcount)+' modules so far...')
+					sys.stdout.write('Found '+str(modcount)+' modules so far...\n')
 	else:
 		for seed in seeds:
 			out = singlemining(seed, expr_df, deg_df, sets, alpha, corrnet, pvals, legacy)
@@ -388,9 +388,9 @@ def mining(expr_df, deg_df, pool=1, sets=[50, 100, 150, 200, 250], alpha=0.05, c
 				write_module(writer, module)
 				modcount +=1
 				if np.mod(modcount,1000)==0:
-					sys.stdout.write('Found '+str(modcount)+' modules so far...')
+					sys.stdout.write('Found '+str(modcount)+' modules so far...\n')
 	#okay, we're done, close the file
-	sys.stdout.write('Found '+str(modcount)+' modules in total')
+	sys.stdout.write('Found '+str(modcount)+' modules in total\n')
 	writer.close()
 	
 	#how long did we take?
@@ -483,9 +483,9 @@ def merging(expr_df, overlap=0.3, meancorr=0.9, corrfilt=0.8, condspan = None, w
 	'''
 	
 	t0 = time.time()
-	sys.stdout.write('Commencing within-condition-span redundant module merging.')
+	sys.stdout.write('Commencing within-condition-span redundant module merging.\n')
 	if condspan:
-		sys.stdout.write('Performing procedure for modules spanning '+str(condspan)+' conditions.')
+		sys.stdout.write('Performing procedure for modules spanning '+str(condspan)+' conditions.\n')
 	#let us read the modules first
 	raw_modules = read_modules(os.path.normcase(job+'/'+which_file+'_modules.tsv'))
 	#so, what categories will we need to look at?
@@ -512,7 +512,7 @@ def merging(expr_df, overlap=0.3, meancorr=0.9, corrfilt=0.8, condspan = None, w
 			inds = find_modules_combination(raw_modules, cat)
 			#print updates only if large lots to process
 			if len(inds)>=100:
-				sys.stdout.write('Large module clump: '+str(len(inds))+' ('+', '.join(cat)+')')
+				sys.stdout.write('Large module clump: '+str(len(inds))+' ('+', '.join(cat)+')\n')
 			#sort the buggers on length
 			lengths = []
 			for i in range(len(inds)):
@@ -544,7 +544,7 @@ def merging(expr_df, overlap=0.3, meancorr=0.9, corrfilt=0.8, condspan = None, w
 				#this just to emulate old times for old times sake
 				del_inds=[]
 	#Okay, so we're done with merging. Export!
-	sys.stdout.write('Merged down to '+str(raw_modules.shape[0])+' modules.')
+	sys.stdout.write('Merged down to '+str(raw_modules.shape[0])+' modules.\n')
 	writer = write_modules(job+'/merged_modules.tsv',raw_modules)
 	#how long did we take?
 	t1 = time.time()
@@ -585,9 +585,9 @@ def sweeping(overlap=0.5, condspan=None, which_file='merged', job='job'):
 	'''
 	
 	t0 = time.time()
-	sys.stdout.write('Commencing inter-condition-span redundant module sweeping.')
+	sys.stdout.write('Commencing inter-condition-span redundant module sweeping.\n')
 	if condspan:
-		sys.stdout.write('Performing procedure for modules spanning '+str(condspan)+' conditions.')
+		sys.stdout.write('Performing procedure for modules spanning '+str(condspan)+' conditions.\n')
 	#let us read the modules first
 	raw_modules = read_modules(os.path.normcase(job+'/'+which_file+'_modules.tsv'))
 	#so, what categories will we need to look at?
@@ -626,7 +626,7 @@ def sweeping(overlap=0.5, condspan=None, which_file='merged', job='job'):
 		swept_modules = np.delete(raw_modules,del_inds,axis=0)
 	else:
 		swept_modules = raw_modules
-	sys.stdout.write('Swept down to '+str(swept_modules.shape[0])+' modules.')
+	sys.stdout.write('Swept down to '+str(swept_modules.shape[0])+' modules.\n')
 	writer = write_modules(job+'/swept_modules.tsv',swept_modules)
 	#how long did we take?
 	t1 = time.time()
@@ -645,9 +645,9 @@ def thresholding(sizes, condspan=None, which_file='swept', job='job'):
 	
 	#not sure why I'm even timing this. completeness? but this is super fast.
 	t0=time.time()
-	sys.stdout.write('Commencing filtering modules on size.')
+	sys.stdout.write('Commencing filtering modules on size.\n')
 	if condspan:
-		sys.stdout.write('Performing procedure for modules spanning '+str(condspan)+' conditions.')
+		sys.stdout.write('Performing procedure for modules spanning '+str(condspan)+' conditions.\n')
 	#let us read the modules first
 	raw_modules = read_modules(os.path.normcase(job+'/'+which_file+'_modules.tsv'))
 	#dummy variable for deleted modules
@@ -666,7 +666,7 @@ def thresholding(sizes, condspan=None, which_file='swept', job='job'):
 		filtered_modules = np.delete(raw_modules,del_inds,axis=0)
 	else:
 		filtered_modules = raw_modules
-	sys.stdout.write('Filtered down to '+str(filtered_modules.shape[0])+' modules.')
+	sys.stdout.write('Filtered down to '+str(filtered_modules.shape[0])+' modules.\n')
 	writer = write_modules(job+'/filtered_modules.tsv',filtered_modules)
 	#how long did we take?
 	t1 = time.time()
@@ -729,11 +729,17 @@ def make_figure(modules, i, expr_df, cond_span, stand, job):
 		#make new figure later
 		plt.close("all")
 
-def export_module(modules, i, annot, writer):
+def export_module(modules, i, annot, writer, bingow, memew):
 	'''
 	A helper function that prints a single module to a file.
 	'''
 	
+	#bingo file header
+	bingow.write('>Module'+str(i+1).zfill(int(np.floor(np.log10(modules.shape[0]))+1))+'\n')
+	#if annot then let's get unique genes for bingo and meme
+	if annot is not None:
+		genelist = []
+	#now, loop over genes and do things
 	for gene in modules[i,4]:
 		#generic header stuff first
 		writer.write('\n'+str(i+1)+'\t'+', '.join(modules[i,0])+'\t'+gene)
@@ -746,9 +752,23 @@ def export_module(modules, i, annot, writer):
 			if holder.size > 0:
 				#we got a hit b0ss. just in case make it be first hit
 				writer.write('\t'.join(holder[0,:]))
+				genelist.append(holder[0,0])
 			else:
 				#no hit
 				writer.write('UNMAPPED')
+		else:
+			#making export based on the stuff in the data structure instead
+			bingow.write(gene+'\n')
+			memew.write(str(i+1)+'\t'+gene+'\n')
+	#if we've got the annot genelist thing, let's turn it into actual information
+	if annot is not None:
+		#unique genes
+		genelist = list(set(genelist))
+		for gene in genelist:
+			bingow.write(gene+'\n')
+			memew.write(str(i+1)+'\t'+gene+'\n')
+	#bingo file tail
+	bingow.write('batch\n')
 
 def export(expr_df, deg_df, which_file='filtered', annot_file=None, hyper=None, stand=True, job='job'):
 	'''
@@ -782,7 +802,7 @@ def export(expr_df, deg_df, which_file='filtered', annot_file=None, hyper=None, 
 		annot2[0,2] = 'Hyperlink'
 		if annot.shape[1]>1:
 			annot2[:,3:]=annot[:,2:]
-		for i in range(annot2.shape[0]):
+		for i in range(1,annot2.shape[0]):
 			annot2[i,2] = '=HYPERLINK("'+hyper.format(gene=annot2[i,1])+'", "LINK")'
 		annot = annot2
 	#okay, this should hopefully sort out the annotation situation. it's in and formatted
@@ -790,6 +810,9 @@ def export(expr_df, deg_df, which_file='filtered', annot_file=None, hyper=None, 
 	#set up plot output folder
 	if not os.path.exists('plots-'+job):
 		os.makedirs('plots-'+job)
+	#set up BiNGO/MEME-friendly output folder
+	if not os.path.exists('functional_analysis_inputs-'+job):
+		os.makedirs('functional_analysis_inputs-'+job)
 	#import appropriate modules
 	modules = read_modules(os.path.normcase(job+'/'+which_file+'_modules.tsv'))
 	#so, what are our conditions?
@@ -812,18 +835,23 @@ def export(expr_df, deg_df, which_file='filtered', annot_file=None, hyper=None, 
 	#crack open a writer handle and prepare the header
 	writer = open('exported_modules-'+job+'.tsv','w')
 	writer.write('Module ID\tCondition Span\t')
+	#crack open more writer headers for bingo and meme
+	bingow = open(os.path.normcase('functional_analysis_inputs-'+job+'/bingo.txt'),'w')
+	memew = open(os.path.normcase('functional_analysis-inputs-'+job+'/meme.txt'),'w')
 	if annot_file:
 		writer.write('\t'.join(annot[0,:]))
 	else:
 		writer.write('Gene Identifier')
 	for i in range(modules.shape[0]):
-		sys.stdout.write('Exporting module '+str(i+1)+'...')
+		sys.stdout.write('Exporting module '+str(i+1)+'...\n')
 		#we're printing the i'th module
 		make_figure(modules, i, expr_df, cond_span, stand, job)
 		#figure status - done
-		export_module(modules,i,annot,writer)
+		export_module(modules,i,annot,writer,bingow,memew)
 	#there we go. that's a wrap. 
 	writer.close()
+	bingow.close()
+	memew.close()
 	#how long did we take?
 	t1 = time.time()
 	print_time(t1, t0, 'Module export')
