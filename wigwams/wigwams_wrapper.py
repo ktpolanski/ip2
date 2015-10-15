@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 import wigwams as ww
 import os
+import sys
 
 def parse_args():
 	'''
@@ -42,7 +43,7 @@ def parse_expr_df(args):
 		* args - parsed command line arguments
 	'''
 	
-	print('Parsing expression CSV file...')
+	sys.stdout.write('Parsing expression CSV file...')
 	expr_df = pd.read_csv(args.expr, index_col=0, header=[0,1])
 	#case insensitive gene names = caps all the gene names on sight
 	expr_df.index = map(lambda x:x.upper(), expr_df.index.tolist())
@@ -104,18 +105,19 @@ def sanity_checks(expr_df, deg_df, args):
 	
 	#need at least 2 conditions (and preferably more than 2 genes too)
 	if 0 in deg_df.shape or 1 in deg_df.shape:
-		raise ValueError('Insufficient number of conditions and/or genes')
-		
+		sys.stderr.write('ERROR: Insufficient number of conditions and/or genes')
+		sys.exit(1)
 	
 	#need some genes to mine as well
 	if all(np.sum(deg_df.values,axis=1)<2):
-		raise ValueError('No genes differentially expressed across two or more conditions')
+		sys.stderr.write('ERROR: No genes differentially expressed across two or more conditions')
+		sys.exit(1)
 	
 	#also would be nice that if we have the thresholding sizes, they actually match in number to condition span
 	if args.thresh:
 		if len(args.thresh) != (len(deg_df.columns)-1):
-			raise ValueError('Incompatible number of thresholding set sizes and actual number of data sets')
-	
+			sys.stderr.write('ERROR: Incompatible number of thresholding set sizes and actual number of data sets')
+			sys.exit(1)
 
 def parse_dfs(args):
 	'''
@@ -130,7 +132,7 @@ def parse_dfs(args):
 
 	#parse the DEG CSV
 	if args.deg:
-		print('Parsing DEG CSV file...')
+		sys.stdout.write('Parsing DEG CSV file...')
 		deg_df = pd.read_csv(args.deg, index_col=0, header=0)
 		#once again, caps gene names on sight
 		deg_df.index = map(lambda x:x.upper(), deg_df.index.tolist())
@@ -140,7 +142,7 @@ def parse_dfs(args):
 	else:
 		#just make a mock one if there is none, makes it easier for the script later on
 		#no need for filtering as obviously all is well
-		print('Creating mock DEG dataframe...')
+		sys.stdout.write('Creating mock DEG dataframe...')
 		expgenes = expr_df.index.tolist()
 		expconds = list(set(expr_df.columns.get_level_values('Treatment')))
 		deg_df = pd.DataFrame(np.ones((len(expgenes),len(expconds))), index=expgenes, columns=expconds)
@@ -150,7 +152,7 @@ def parse_dfs(args):
 
 	#time for data standardisation
 	if args.stand:
-		print('Standardising data...')
+		sys.stdout.write('Standardising data...')
 		for cond in list(set(expr_df.columns.get_level_values('Treatment'))):
 			vals = expr_df.loc[:,cond].values
 			expr_df.loc[:,cond] = (vals - np.mean(vals,axis=1)[:,None]) / np.std(vals,axis=1)[:,None]
@@ -230,12 +232,12 @@ def wigwams_analysis_new(expr_df, deg_df, args):
 		if indrat > ratio_best:
 			ratio_best = indrat
 			swov_best = swov
-			print('New least redundant output.')
+			sys.stdout.write('New least redundant output (with sweeping overlap '+str(swov)+')')
 	#our export swoops in to pick up where the sweeping on two would have happened, so export the current sweepfile
-	print('Least redundant output obtained for sweeping overlap ratio of '+str(swov_best)+'.')
+	sys.stdout.write('Least redundant output obtained for sweeping overlap ratio of '+str(swov_best)+'.')
 	#if the best values were obtained for the last one we checked, easy enough to just keep it
 	if swov != swov_best:
-		print('Preparing output.')
+		sys.stdout.write('Preparing output.')
 		run_single_condspan(expr_df, deg_df, args, swov_best)
 	sweepfile = 'merged'
 	if args.thresh:
