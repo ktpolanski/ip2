@@ -14,7 +14,7 @@ RUN apt-get update && apt-get -y upgrade && \
 
 # take all the stuff from here (here being where we run this, contains wigwams.py and wigwams_wrapper.py)
 # and put it all into /wigwams inside the docker container
-ADD . wigwams
+ADD wigwams.py wigwams_wrapper.py /wigwams/
 
 # set the actual working directory (where the docker virtual machine will be) to where the data comes in
 WORKDIR /agave

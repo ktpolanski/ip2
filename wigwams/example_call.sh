@@ -12,7 +12,7 @@ python wigwams_wrapper.py \
 	--Job model \
 	--Legacy
 	
-#docker call
+#docker call, on kpolanski@tesla-wsbc.warwick.ac.uk
 #-v for volume setup, the "real" directory has the proper path, then you get the colon
 #and then you get the within-docker address (here /agave)
 #-it so that it spits out the stdouts so we can see them
