@@ -17,4 +17,5 @@ python wigwams_wrapper.py \
 #and then you get the within-docker address (here /agave)
 #-it so that it spits out the stdouts so we can see them
 #and then just normal inputs. the working directory will be /agave, where the files are at
-docker run -it -v /home/kpolanski/docker_demo/wigwams-image-building/testdata:/agave wigwams --Expression model_expr.csv --DEGs model_deg.csv --Export_Annotation annot_agi.tsv --Export_Hyperlink 'http://www.arabidopsis.org/servlets/TairObject?type=locus&name={gene}' --NoStandardising --PoolNumber 4 --SizeThresholds 10 10 8 5 5 --Job model --Legacy
+#--rm to kill the container once the thing completes to avoid littering the container space
+docker run -it --rm -v /home/kpolanski/docker_demo/wigwams-image-building/testdata:/agave wigwams --Expression model_expr.csv --DEGs model_deg.csv --Export_Annotation annot_agi.tsv --Export_Hyperlink 'http://www.arabidopsis.org/servlets/TairObject?type=locus&name={gene}' --NoStandardising --PoolNumber 4 --SizeThresholds 10 10 8 5 5 --Job model --Legacy
