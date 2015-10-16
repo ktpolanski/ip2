@@ -178,11 +178,11 @@ def wigwams_analysis_default(expr_df, deg_df, args):
 	'''
 
 	#mining. the time consuming part
-	#ww.mining(expr_df, deg_df, pool=args.pool, sets=args.sets, alpha = args.alpha, corrnet=args.corrnet, legacy=args.leg, job=args.job)
+	ww.mining(expr_df, deg_df, pool=args.pool, sets=args.sets, alpha = args.alpha, corrnet=args.corrnet, legacy=args.leg, job=args.job)
 	#merging
-	#ww.merging(expr_df, overlap=args.merging_overlap, meancorr=args.meancorr, corrfilt=args.corrfilt, legacy=args.leg, job=args.job)
+	ww.merging(expr_df, overlap=args.merging_overlap, meancorr=args.meancorr, corrfilt=args.corrfilt, legacy=args.leg, job=args.job)
 	#sweeping
-	#ww.sweeping(overlap=args.sweeping_overlap, job=args.job)
+	ww.sweeping(overlap=args.sweeping_overlap, job=args.job)
 	#thresholding if applicable
 	which_file = 'filtered'
 	if args.thresh:
