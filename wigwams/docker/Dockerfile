@@ -1,0 +1,32 @@
+# run as:
+#   docker build -f docker/Dockerfile -t wigwams .
+# (with wigwams.py and wigwams_wrapper.py in the current directory)
+
+# base everything on a recent Ubuntu
+FROM debian:latest
+
+# get system packages up to date then install a basic scientific python
+RUN apt-get update && apt-get -y upgrade && \
+    apt-get -y install python3 \
+         python3-numpy python3-scipy python3-pandas python3-matplotlib python3-seaborn
+
+# add and configure our code
+
+# take all the stuff from here (here being where we run this, contains wigwams.py and wigwams_wrapper.py)
+# and put it all into /wigwams inside the docker container
+ADD . wigwams
+
+# set the actual working directory (where the docker virtual machine will be) to where the data comes in
+WORKDIR /agave
+
+MAINTAINER Krzysztof Polanski <k.t.polanski@warwick.ac.uk>
+
+# so this is what is going to run by default when you trigger this, in the virtual machine
+# call the wigwams wrapper from the other directory while staying in /agave with the files
+ENTRYPOINT ["python3", "../wigwams/wigwams_wrapper.py"]
+
+# this is for communicating with the exterior, this is where it expects to get data
+VOLUME ["/agave"]
+
+# if nothing else is specified in the docker call, just run --help
+CMD ["--help"]
