@@ -837,7 +837,7 @@ def export(expr_df, deg_df, which_file='filtered', annot_file=None, hyper=None, 
 	writer.write('Module ID\tCondition Span\t')
 	#crack open more writer headers for bingo and meme
 	bingow = open(os.path.normcase('functional_analysis_inputs-'+job+'/bingo.txt'),'w')
-	memew = open(os.path.normcase('functional_analysis-inputs-'+job+'/meme.txt'),'w')
+	memew = open(os.path.normcase('functional_analysis_inputs-'+job+'/meme.txt'),'w')
 	if annot_file:
 		writer.write('\t'.join(annot[0,:]))
 	else:
