@@ -725,7 +725,7 @@ def make_figure(modules, i, expr_df, cond_span, stand, job):
 			fname = fname+'_plot'+str(j)
 		plt.tight_layout()
 		sns.despine()
-		plt.savefig(os.path.normcase('plots-'+job+'/'+fname+'.svg'), bbox_inches='tight')
+		plt.savefig(os.path.normcase('plots-'+job+'/'+fname+'.eps'), format='eps', dpi=1000, bbox_inches='tight')
 		#make new figure later
 		plt.close("all")
 
