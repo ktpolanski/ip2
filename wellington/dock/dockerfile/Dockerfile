@@ -1,0 +1,54 @@
+# run as:
+#   docker build -f dockerfile/Dockerfile -t wellington .
+#(run this while in the folder with all the stuff in it)
+
+# base everything on a recent Ubuntu
+FROM debian:latest
+
+# get system packages up to date then install the pyDNase dependencies
+RUN apt-get update && apt-get -y upgrade
+RUN apt-get -y install python3 \
+         python3-pip python3-numpy python3-scipy python3-matplotlib
+# this thing needs samtools too
+RUN apt-get -y install samtools
+RUN apt-get -y install wget
+RUN apt-get -y install unzip
+
+# zlib
+RUN apt-get install -y zlibc zlib1g zlib1g-dev
+
+# get the uncooperative packages
+# note the cascade of commands in the installation. somehow between RUNs the path resets
+
+# cython
+RUN wget http://cython.org/release/Cython-0.23.4.tar.gz
+RUN tar xfz Cython-0.23.4.tar.gz
+RUN cd /Cython-0.23.4 && python3 setup.py install && cd /
+
+# pysam
+RUN wget https://github.com/pysam-developers/pysam/archive/master.zip
+RUN unzip master.zip
+RUN cd pysam-master && python3 setup.py install && cd /
+
+# cleanup
+RUN rm master.zip
+RUN rm Cython-0.23.4.tar.gz
+
+#get scripts
+ADD . /scripts
+
+# the scripts include pyDNase
+RUN cd scripts/pyDNase-master && python3 setup.py install && cd /
+
+# set the actual working directory (where the docker virtual machine will be) to where the data comes in
+WORKDIR /agave
+
+MAINTAINER Krzysztof Polanski <k.t.polanski@warwick.ac.uk>
+
+# so this is what is going to run by default when you trigger this, in the virtual machine
+# call the wellington wrapper from the other directory while staying in /agave with the files
+# note the lack of a default call later. this is a multi-script wrapper
+ENTRYPOINT ["bash", "../scripts/wellington_wrapper.sh"]
+
+# this is for communicating with the exterior, this is where it expects to get data
+VOLUME ["/agave"]
