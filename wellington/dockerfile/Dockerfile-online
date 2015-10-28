@@ -1,5 +1,5 @@
 # run as:
-#   docker build Dockerfile-online -t wellington .
+#   docker build -f Dockerfile-online -t wellington .
 
 # base everything on a recent Ubuntu
 FROM debian:latest
@@ -35,7 +35,10 @@ RUN rm Cython-0.23.4.tar.gz
 
 #get scripts
 RUN wget https://github.com/ktpolanski/ip2/archive/master.zip
+RUN unzip master.zip
 RUN mv /ip2-master/wellington/scripts /scripts
+RUN rm master.zip
+RUN rm -r ip2-master
 
 # the scripts include pyDNase
 RUN cd scripts/pyDNase-differential && python3 setup.py install && cd /
