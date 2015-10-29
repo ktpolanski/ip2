@@ -12,7 +12,7 @@ rm temp2.bed
 #we also need to run the indexing ourselves because yes
 mkdir analysis
 samtools index $2
-python ../scripts/wellington_footprints.py $2 analysis ${@:3}
+python ../scripts/wellington_footprints.py processed_peaks.bed $2 analysis ${@:3}
 
 #move wellington run contents into main folder
 mv analysis/* .

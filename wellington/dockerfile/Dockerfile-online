@@ -38,7 +38,7 @@ RUN cd bedops && tar jxvf bedops_linux_x86_64-vx.y.z.tar.bz2 && cd /
 # cleanup
 RUN rm master.zip
 RUN rm Cython-0.23.4.tar.gz
-RUN rm bedops_linux_x86_64-v2.4.5.tar.bz2
+RUN rm bedops/bedops_linux_x86_64-v2.4.5.tar.bz2
 
 #get scripts
 RUN wget https://github.com/ktpolanski/ip2/archive/master.zip
