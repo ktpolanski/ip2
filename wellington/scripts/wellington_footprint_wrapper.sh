@@ -1,11 +1,18 @@
 #!/bin/bash
 
+#pre-process peaks
+cut -f -3 $1 > temp.bed
+../bedtools/bin/bedops --range 50 --everything temp.bed > temp2.bed
+../bedtools/bin/bedops --merge temp2.bed > processed_peaks.bed
+rm temp.bed
+rm temp2.bed
+
 #run wellington.
 #note that we need to make the directory ourselves because yes
 #we also need to run the indexing ourselves because yes
 mkdir analysis
 samtools index $2
-python ../scripts/wellington_footprints.py $@
+python ../scripts/wellington_footprints.py $2 analysis ${@:3}
 
 #move wellington run contents into main folder
 mv analysis/* .
