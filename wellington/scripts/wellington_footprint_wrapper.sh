@@ -2,8 +2,8 @@
 
 #pre-process peaks
 cut -f -3 $1 > temp.bed
-../bedtools/bin/bedops --range 50 --everything temp.bed > temp2.bed
-../bedtools/bin/bedops --merge temp2.bed > processed_peaks.bed
+../bedops/bin/bedops --range 50 --everything temp.bed > temp2.bed
+../bedops/bin/bedops --merge temp2.bed > processed_peaks.bed
 rm temp.bed
 rm temp2.bed
 

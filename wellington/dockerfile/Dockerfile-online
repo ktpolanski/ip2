@@ -32,7 +32,7 @@ RUN cd pysam-master && python3 setup.py install && cd /
 # bedops
 RUN wget https://github.com/bedops/bedops/releases/download/v2.4.5/bedops_linux_x86_64-v2.4.5.tar.bz2
 RUN mkdir bedops && mv bedops_linux_x86_64-v2.4.5.tar.bz2 bedops
-RUN cd bedops && tar jxvf bedops_linux_x86_64-vx.y.z.tar.bz2 && cd /
+RUN cd bedops && tar jxvf bedops_linux_x86_64-v2.4.5.tar.bz2 && cd /
 # this placed our bedops binaries in /bedops/bin. remember this for script calling
 
 # cleanup
@@ -58,7 +58,7 @@ MAINTAINER Krzysztof Polanski <k.t.polanski@warwick.ac.uk>
 # so this is what is going to run by default when you trigger this, in the virtual machine
 # call the wellington wrapper from the other directory while staying in /agave with the files
 # note the lack of a default call later. this is a multi-script wrapper
-ENTRYPOINT ["bash", "../scripts/wellington_wrapper.sh"]
+ENTRYPOINT ["bash", "../scripts/wellington_footprint_wrapper.sh"]
 
 # this is for communicating with the exterior, this is where it expects to get data
 VOLUME ["/agave"]
