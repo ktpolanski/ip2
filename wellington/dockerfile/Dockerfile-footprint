@@ -1,5 +1,5 @@
 # run as:
-#   docker build -f Dockerfile-footprint -t wellington .
+#   docker build -f Dockerfile-footprint -t wellington-footprint .
 
 # base everything on a recent Ubuntu
 FROM debian:latest
