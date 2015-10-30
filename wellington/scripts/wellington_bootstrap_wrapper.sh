@@ -4,7 +4,7 @@ set -e
 #pre-process peaks
 #we can have one or two peak files. which one we having?
 cut -f -3 $1 > temp1.bed
-../bedops/bin/bedops --range 50 --everything temp.bed > temp1_2.bed
+../bedops/bin/bedops --range 50 --everything temp1.bed > temp1_2.bed
 ../bedops/bin/bedops --merge temp1_2.bed > processed_peaks.bed
 rm temp1.bed
 rm temp1_2.bed
