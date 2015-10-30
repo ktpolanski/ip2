@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 #pre-process peaks
 cut -f -3 $1 > temp.bed

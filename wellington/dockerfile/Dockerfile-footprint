@@ -1,14 +1,13 @@
 # run as:
-#   docker build -f dockerfile/Dockerfile -t wellington .
-#(run this while in the folder with all the stuff in it)
+#   docker build -f Dockerfile-footprint -t wellington .
 
 # base everything on a recent Ubuntu
 FROM debian:latest
 
 # get system packages up to date then install the pyDNase dependencies
 RUN apt-get update && apt-get -y upgrade
-RUN apt-get -y install python3 \
-         python3-pip python3-numpy python3-scipy python3-matplotlib
+RUN apt-get -y install python \
+         python-pip python-numpy python-scipy python-matplotlib
 # this thing needs samtools too
 RUN apt-get -y install samtools
 RUN apt-get -y install wget
@@ -30,12 +29,23 @@ RUN wget https://github.com/pysam-developers/pysam/archive/master.zip
 RUN unzip master.zip
 RUN cd pysam-master && python3 setup.py install && cd /
 
+# bedops
+RUN wget https://github.com/bedops/bedops/releases/download/v2.4.5/bedops_linux_x86_64-v2.4.5.tar.bz2
+RUN mkdir bedops && mv bedops_linux_x86_64-v2.4.5.tar.bz2 bedops
+RUN cd bedops && tar jxvf bedops_linux_x86_64-v2.4.5.tar.bz2 && cd /
+# this placed our bedops binaries in /bedops/bin. remember this for script calling
+
 # cleanup
 RUN rm master.zip
 RUN rm Cython-0.23.4.tar.gz
+RUN rm bedops/bedops_linux_x86_64-v2.4.5.tar.bz2
 
 #get scripts
-ADD . /scripts
+RUN wget https://github.com/ktpolanski/ip2/archive/master.zip
+RUN unzip master.zip
+RUN mv /ip2-master/wellington/scripts /scripts
+RUN rm master.zip
+RUN rm -r ip2-master
 
 # the scripts include pyDNase
 RUN cd scripts/pyDNase-differential && python3 setup.py install && cd /
@@ -48,7 +58,7 @@ MAINTAINER Krzysztof Polanski <k.t.polanski@warwick.ac.uk>
 # so this is what is going to run by default when you trigger this, in the virtual machine
 # call the wellington wrapper from the other directory while staying in /agave with the files
 # note the lack of a default call later. this is a multi-script wrapper
-ENTRYPOINT ["bash", "../scripts/wellington_wrapper.sh"]
+ENTRYPOINT ["bash", "../scripts/wellington_footprint_wrapper.sh"]
 
 # this is for communicating with the exterior, this is where it expects to get data
 VOLUME ["/agave"]
