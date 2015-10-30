@@ -1,5 +1,5 @@
 # run as:
-#   docker build Dockerfile-online -t wigwams .
+#   docker build -f Dockerfile-online -t wigwams .
 # (make sure there's nothing else in the directory or it will get sponged for some reason)
 
 # base everything on a recent Ubuntu
