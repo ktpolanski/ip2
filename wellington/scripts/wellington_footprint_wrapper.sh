@@ -27,4 +27,4 @@ python ../scripts/dnase_average_profile.py WellingtonFootprints.FDR.bed $2 outpu
 python ../scripts/dnase_to_javatreeview.py WellingtonFootprints.FDR.bed $2 output_visualisation/javatreeview_heatmap_ready.csv
 
 #get the wiggle tracks
-python ../scripts/dnase_wig_tracks.py $1 $2 output_visualisation/fw_cuts.wig output_visualisation/rv_cuts.wig
+python ../scripts/dnase_wig_tracks.py processed_peaks.bed $2 output_visualisation/fw_cuts.wig output_visualisation/rv_cuts.wig
