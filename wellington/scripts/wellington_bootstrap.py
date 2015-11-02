@@ -85,11 +85,11 @@ class Diffwell(pyDNase.footprinting.wellington):
                     if not c <= best[1] <= d:
                         new_ranges.append([c, d, e, f])
                 ranges = new_ranges
-            else:
-                 merged_ranges = ranges
-            # Creates reads GenomicIntervalSet and adds the footprints to them
-            for i in merged_ranges:
-                return_set.append(((i[0] + i[1])/2, i[3]))
+        else:
+            merged_ranges = ranges
+        # Creates reads GenomicIntervalSet and adds the footprints to them
+        for i in merged_ranges:
+            return_set.append(((i[0] + i[1])/2, i[3]))
         return return_set
 
     def findDiffFP(self):
