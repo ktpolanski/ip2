@@ -18,4 +18,4 @@ As mentioned, the module mining evaluates all of the eligible genes as "seed gen
 
 ## Demonstration Run
 
-You can quite easily reproduce the Wigwams run performed in Polanski et al. (2014). The data can be found in ktpolanski/wigwams_testdata under Community Data. Use model\_expr.csv 
+You can quite easily reproduce the Wigwams run performed in Polanski et al. (2014). The data can be found in ktpolanski/wigwams_testdata under Community Data. Use `model\_expr.csv` for the "Gene Expression CSV" field, and `model\_deg.csv` for the 
