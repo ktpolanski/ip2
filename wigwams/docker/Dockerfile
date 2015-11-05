@@ -16,7 +16,7 @@ RUN apt-get update && apt-get -y upgrade && \
 # take all the stuff from here (here being where we run this, contains wigwams.py and wigwams_wrapper.py)
 # and put it all into /wigwams inside the docker container
 RUN mkdir /wigwams
-COPY wigwams/wigwams.py wigwams/wigwams_wrapper.py /wigwams/
+COPY ../wigwams.py ../wigwams_wrapper.py /wigwams/
 
 MAINTAINER Krzysztof Polanski <k.t.polanski@warwick.ac.uk>
 
