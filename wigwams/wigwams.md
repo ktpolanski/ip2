@@ -18,4 +18,17 @@ As mentioned, the module mining evaluates all of the eligible genes as "seed gen
 
 ## Demonstration Run
 
-You can quite easily reproduce the Wigwams run performed in Polanski et al. (2014). The data can be found in ktpolanski/wigwams_testdata under Community Data. In the iPlant app, in the Inputs tab, use `model_expr.csv` for the `Gene Expression CSV` field, and `model_deg.csv` for the `Differential Expression CSV` field. In the Parameters tab, check the `Run Legacy Version` checkbox, and enter `10 10 8 5 5` into the `Minimum Module Size Filtering` field. Now you're ready to press the Launch Analysis at the bottom of the app.
+You can quite easily reproduce the Wigwams run performed in Polanski et al. (2014). The data can be found in `ktpolanski/wigwams_testdata` under Community Data. In the iPlant app, in the Inputs tab, use `model_expr.csv` for the `Gene Expression CSV` field, and `model_deg.csv` for the `Differential Expression CSV` field. In the Parameters tab, check the `Run Legacy Version` checkbox, and enter `10 10 8 5 5` into the `Minimum Module Size Filtering` field. Press the Launch Analysis button in the bottom right corner of the app window and your demonstration run has been launched.
+
+## Inputs and Parameters
+
+### Gene Expression CSV
+
+**The only obligatory file you have to provide.** After all, performing an analysis without any data is not really possible. This is where your data goes, formatted into CSV (the individual fields being separated by commas). The first column is to contain the gene IDs, which should be the same as the gene IDs provided in the differential expression file if you choose to use one. The first two rows should describe the particular time point that the data is for, with the name of the condition in the first row and the actual time point in the second row. If in need of an example, consult `ktpolanski/wigwams_testdata/model_expr.csv` under Community Data for formatting. If in possession of multiple replicates, it would be highly preferable to average them out to a single mean value per gene per condition.
+
+### Differential Expression CSV
+
+**Default:** everything is differentially expressed everywhere, i.e. no differential expression information taken into account during analysis
+
+A CSV capturing the differential expression status of your genes across the conditions. The first column is to contain the gene IDs, which should match the ones from the expression CSV you just provided. Order does not matter though. The first row is to feature the names of the conditions, which should match the ones that you provided data for in the previous step as well. The actual data fields are to be 0 if the gene is not differentially expressed in that condition, or 1 if the gene is differentially expressed in that condition. If in need of an example, consult `ktpolanski/wigwams_testdata/model_deg.csv` under Community Data for formatting. You actually have to perform the differential expression analyses yourself, though. If in need of method guidance, GP2S (Stegle et al., 2010) is a solid algorithm, and it was used to identify differentially expressed genes in five of the six datasets comprising the demonstration files (the sixth dataset lacked a control time course to compare the treatment to, as the experiment was plant ageing).
+
