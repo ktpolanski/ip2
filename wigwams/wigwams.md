@@ -1,5 +1,21 @@
-## Wigwams Identifies Genes Working Across Multiple Situations
+# Wigwams Identifies Genes Working Across Multiple Situations
 
-### The Purpose of the Algorithm
+## The Purpose of the Algorithm
 
-Wigwams could be described as a biclustering approach for time series data, as it identifies genes exhibiting co-expression across subsets of available time course data sets.
+Wigwams could be described as a biclustering approach for time series data, as it identifies genes exhibiting co-expression across subsets of available time course data sets. This is a sensible course of action when looking for co-regulatory crosstalk in the responses to multiple stimuli, as just because you feed an algorithm data from a high number of experiments does not oblige the biological crosstalk to span across all of them. 
+
+In contrast to standard biclustering methods, Wigwams evaluates the co-expression trends it identifies for statistical significance, discriminating between co-expression indicative of co-regulation and co-expression occurring by chance, merely stemming from the relative abundance of profiles in each individual condition. Once again, the biological motivation is sound - if given 5000 genes exhibiting a particular profile in one condition and 5000 genes exhibiting another particular profile in a second condition, an overlap of 50 between the two sets of 5000 does not seem indicative of crosstalk and is probably occurring by chance. By contrast, if the individual condition profiles occurred 100 times instead of 5000, the 50 gene intersection would be considerably more likely to represent a shared regulatory mechanism. Existing biclustering methodology does not attempt to discriminate between the two scenarios, and will likely identify and report the 50 gene group without discriminating on the context of the co-expression.
+
+Additionally, Wigwams is capable of accounting of genes' differential expression status across the conditions, making sure that the crosstalk it detects is performed by genes playing an active part in the responses.
+
+## The Components of a Wigwams Run
+
+When performing a Wigwams analysis, the data is first mined for groups of genes, henceforth termed modules, exhibiting co-expression indicative of co-regulation across subsets of the provided time course datasets. The resulting module list features a high degree of redundant information, so the following step is to perform post-processing to make the output be succinct and accessible.
+
+During module mining, all of the genes differentially expressed in at least two of the supplied experiments take turns being the "seed gene" - a reference profile that the expression of all the other genes is compared to. For each individual condition where the "seed gene" is differentially expressed, a list of the genes exhibiting the strongest co-expression with the "seed gene" profile is compiled. The individual lists are then compared to each other in all possible combinations, with the overlap being evaluated for significance with a modification of the hypergeometric test (a tool used for general overrepresentation assessment, for details consult Polanski et al. 2014). Stringent FDR correction is performed by applying the Bonferroni correction to the resulting p-values.
+
+As mentioned, the module mining evaluates all of the eligible genes as "seed genes", with all of the possible condition combinations mined for modules as well. This leads to a high degree of redundancy in the resulting module list, which needs to be dealt with to produce a clear output. Going back to the 50 gene module example, the complete search will find the module when using the first gene in the module as a "seed gene", then find it again when the second gene is used as the "seed gene", and so on in this fashion, resulting in many entries in the module list saying essentially the same thing. If the 50-gene module spanned three conditions instead of two, then the identified module list would also include the module detected across all corresponding pairs of conditions as well. At the time of module detection, the algorithm has no way of knowing that the three-condition module exists, and identifies everything that it finds evidence of co-regulation for. This is why we need merging, which glues together similar modules spanning the same conditions, and sweeping, which kicks out modules that are saying similar things to other modules spanning more conditions.
+
+## Demonstration Run
+
+You can quite easily reproduce the Wigwams run performed in Polanski et al. (2014). The data can be found in ktpolanski/wigwams_testdata under Community Data. Use model\_expr.csv 
