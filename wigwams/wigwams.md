@@ -20,7 +20,7 @@ As mentioned, the module mining evaluates all of the eligible genes as "seed gen
 
 You can quite easily reproduce the Wigwams run performed in Polanski et al. (2014). The data can be found in `ktpolanski/wigwams_testdata` under Community Data. In the iPlant app, in the Inputs tab, use `model_expr.csv` for the `Gene Expression CSV` field, and `model_deg.csv` for the `Differential Expression CSV` field. In the Parameters tab, check the `Run Legacy Version` checkbox, and enter `10 10 8 5 5` into the `Minimum Module Size Filtering` field. Press the Launch Analysis button in the bottom right corner of the app window and your demonstration run has been launched.
 
-## Inputs and Parameters
+## Inputs
 
 ### Gene Expression CSV
 
@@ -28,7 +28,18 @@ You can quite easily reproduce the Wigwams run performed in Polanski et al. (201
 
 ### Differential Expression CSV
 
-**Default:** everything is differentially expressed everywhere, i.e. no differential expression information taken into account during analysis
+**Default:** When no file is provided, everything is differentially expressed everywhere, i.e. no differential expression information taken into account during analysis.
 
 A CSV capturing the differential expression status of your genes across the conditions. The first column is to contain the gene IDs, which should match the ones from the expression CSV you just provided. Order does not matter though. The first row is to feature the names of the conditions, which should match the ones that you provided data for in the previous step as well. The actual data fields are to be 0 if the gene is not differentially expressed in that condition, or 1 if the gene is differentially expressed in that condition. If in need of an example, consult `ktpolanski/wigwams_testdata/model_deg.csv` under Community Data for formatting. You actually have to perform the differential expression analyses yourself, though. If in need of method guidance, GP2S (Stegle et al., 2010) is a solid algorithm, and it was used to identify differentially expressed genes in five of the six datasets comprising the demonstration files (the sixth dataset lacked a control time course to compare the treatment to, as the experiment was plant ageing).
 
+### Annotation
+
+**Default:** No annotation. All exports are made using the IDs provided in the input CSV(s).
+
+When looking at the exported membership of each of the modules, merely having the IDs that you provided in the CSV on input may not be the most immediately informative. As such, you can provide extra information on each of your genes to include in the export to help make sense of the modules faster. If you choose to provide an annotation, it needs to be tab-separated, with the first column matching the IDs that you provided in your CSV, the second column being a widely recognised form of gene ID (for example, your CSV could feature microarray probe names as IDs, and this column would feature actual gene identifiers), with columns three onwards featuring any additional information you may wish to provide. **Column two needs to contain a widely recognised form of gene ID** - if you already feature that as your CSV ID, just copy it over again as column two. For reference on formatting, including the duplication of informative CSV gene IDs as column two, consult `ktpolanski/wigwams_testdata/annot_agi.tsv`.
+
+### Hyperlink
+
+**Default:** No hyperlink.
+
+If you provide an annotation, Wigwams can automatically create hyperlinks to online resources for you to quickly and easily examine any gene that piques your interest. When providing a hyperlink, the place where the gene ID is to go should be marked with `{gene}`. As such, an example hyperlink, which works for the *A. thaliana* resource TAIR, is `http://www.arabidopsis.org/servlets/TairObject?type=locus&name={gene}`. If our gene is AT1G25550, then the hyperlink address that will show up in the module export will be `http://www.arabidopsis.org/servlets/TairObject?type=locus&name=AT1G25550`. The hyperlink column will be inserted as the third column in the annotation.
