@@ -1,0 +1,2 @@
+#note the K562 data has been moved to the bootstrap folder, if you need to re-run the footprint for some reason
+docker run -it --rm -v /home/kpolanski/docker_demo/TAIR10:/agave -w /agave hmt-index genome_rm.fa annot.gff3 gene_id 500 minimeme.txt 0.05 5
