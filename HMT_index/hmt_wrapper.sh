@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 #inputs:
 # $1 - genome
@@ -35,6 +36,8 @@ python3 /scripts/parse_memefile.py $5
 for fid in memefiles/*.txt
 do
 	/root/meme/bin/fimo --text --thresh $6 --verbosity 1 --bgfile promoters.bg $fid promoters.fa >> fimo.txt
-	#this handily overrides fimo.txt each time, while appending to fimo_found.txt
+	#this appends to fimo_found.txt
 	python3 /scripts/parse_matrix.py $7 $4 $6
+	#need to wipe fimo.txt to avoid silliness
+	rm fimo.txt
 done
