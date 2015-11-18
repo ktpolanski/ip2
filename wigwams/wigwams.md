@@ -102,7 +102,7 @@ By default, Wigwams will scale the data to a zero-mean, unit-variance normal dis
 
 ### Run Legacy Version
 
-Since the publication of the algorithm in Polanski et al. (2014), slight improvements have been made to the module mining and merging procedures. In the original publication, the most significant module was identified from each set size combination (for a given "seed gene" and condition combination), but more information is present in the output if the largest significant module is returned instead. The original design of merging did not foresee the creation of redundant modules that would have satisfied merging criteria through independent merging procedures, so merging is repeated until no new merging instances occur. In order to run the algorithm as originally outlined in the Bioinformatics article, check this box.
+Since the publication of the algorithm in [Polanski et al. (2014)][polanski2014], slight improvements have been made to the module mining and merging procedures. In the original publication, the most significant module was identified from each set size combination (for a given "seed gene" and condition combination), but more information is present in the output if the largest significant module is returned instead. The original design of merging did not foresee the creation of redundant modules that would have satisfied merging criteria through independent merging procedures, so merging is repeated until no new merging instances occur. In order to run the algorithm as originally outlined in the Bioinformatics article, check this box.
 
 ### Non-Redundant Output
 
