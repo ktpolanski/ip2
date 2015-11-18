@@ -32,7 +32,7 @@ You can quite easily reproduce the Wigwams run performed in Polanski et al. (201
 
 A CSV capturing the differential expression status of your genes across the conditions. The first column is to contain the gene IDs, which should match the ones from the expression CSV you just provided. Order does not matter though. The first row is to feature the names of the conditions, which should match the ones that you provided data for in the previous step as well. The actual data fields are to be 0 if the gene is not differentially expressed in that condition, or 1 if the gene is differentially expressed in that condition. If in need of an example, consult `ktpolanski/wigwams_testdata/model_deg.csv` under Community Data for formatting. You actually have to perform the differential expression analyses yourself, though. If in need of method guidance, GP2S (Stegle et al., 2010) is a solid algorithm, and it was used to identify differentially expressed genes in five of the six datasets comprising the demonstration files (the sixth dataset lacked a control time course to compare the treatment to, as the experiment was plant ageing).
 
-### Annotation
+### Gene Annotation
 
 **Default:** No annotation. All exports are made using the IDs provided in the input CSV(s).
 
@@ -94,7 +94,7 @@ Whilst merging deals with redundancy among modules spanning the same time course
 
 At the end of the Wigwams analysis, you may wish to remove small modules to not clutter the output with very petite phenomena. This is an optional step, and leaving the field empty will not filter your module list in any way. If you do wish to perform this filtering step, provide N-1 desired module sizes, where N is the total number of time course datasets used on input, with the desired module sizes going from 2 to N condition span.
 
-## Algorithm Tweaks
+## Algorithm Alterations and Enhancements
 
 ### No Standardising
 

@@ -119,7 +119,8 @@ def main():
 		#sorting to be the same order
 		mask = np.asarray([i[0] for i in sorted(enumerate(mot_annot[:,0]), key=lambda x:x[1])])
 		mot_annot = mot_annot[mask,:]
-	else:
+	#note the lack of an else - it's entirely possible that the mot_annot gets None'd above
+	if mot_annot is None:
 		#make a "mock annot" to have the export be homogeneous
 		header = ['Motif ID']
 		mot_annot = motifs[:,None]
@@ -128,18 +129,27 @@ def main():
 	pvalues_bonf = np.zeros((len(motifs),len(groups)))
 	pvalues_bh = np.zeros((len(motifs),len(groups)))
 	#pre-generate overrepresentation holders
-	over_bonf = header
-	over_bonf.extend(['Module ID', 'P-Value', 'Bound Genes'])
-	over_bonf = np.array(over_bonf)
-	over_bh = over_bonf
+	over_head = list(header)
+	over_head.extend(['Module ID', 'P-Value', 'Bound Genes'])
+	over_bonf = open('Overrepresentation_Bonferroni.txt','w')
+	over_bh = open('Overrepresentation_Benjamini-Hochberg.txt','w')
+	over_bonf.write('\t'.join(over_head))
+	over_bh.write('\t'.join(over_head))
+	#dictionaries are efficient
+	matdict = {}
+	for mot in mot_annot[:,0]:
+		motgenes = np.unique(foundmotifs[np.where(foundmotifs[:,0]==mot)[0],1])
+		motgenes = np.array(list(set(motgenes).intersection(set(universe))))
+		matdict[mot] = motgenes
 	#testing proper. loop over gene groups
 	for i in range(len(groups)):
 		genes = input[np.where(input[:,0]==groups[i])[0],1]
 		genes = np.array(list(set(genes).intersection(set(universe))))
 		for j in range(len(motifs)):
-			motgenes = np.unique(foundmotifs[np.where(foundmotifs[:,0]==motifs[j]),1])
-			motgenes = np.array(list(set(motgenes).intersection(set(universe))))
+			motgenes = matdict[motifs[j]]
 			hitgenes = np.array(list(set(genes).intersection(set(motgenes))))
+			#differences with Matlab version are here
+			#due to the fact we're using a wider universe
 			pvalues[j,i] = np.exp(log_hypergeometric(len(hitgenes),len(motgenes),len(genes),len(universe)))
 			if pvalues[j,i]>1:
 				pvalues[j,i]=1
@@ -149,18 +159,71 @@ def main():
 			if pvalues_bonf[j,i]>1:
 				pvalues_bonf[j,i]=1 
 			elif pvalues_bonf[j,i] <= args.alpha:
-				motgenes = np.unique(foundmotifs[np.where(foundmotifs[:,0]==motifs[j]),1])
-				motgenes = np.array(list(set(motgenes).intersection(set(universe))))
+				motgenes = matdict[motifs[j]]
 				hitgenes = np.array(list(set(genes).intersection(set(motgenes))))
 				line = list(mot_annot[j,:])
 				line.extend([strgroups[i], str(pvalues_bonf[j,i]), ';'.join(hitgenes)])
-				over_bonf = np.vstack((over_bonf,np.array(line)))
+				over_bonf.write('\n'+'\t'.join(line))
 			if pvalues_bh[j,i]>1:
 				pvalues_bh[j,i]=1
 			elif pvalues_bh[j,i] <= args.alpha:
-				motgenes = np.unique(foundmotifs[np.where(foundmotifs[:,0]==motifs[j]),1])
-				motgenes = np.array(list(set(motgenes).intersection(set(universe))))
+				motgenes = matdict[motifs[j]]
 				hitgenes = np.array(list(set(genes).intersection(set(motgenes))))
 				line = list(mot_annot[j,:])
 				line.extend([strgroups[i], str(pvalues_bh[j,i]), ';'.join(hitgenes)])
-				over_bh = np.vstack((over_bh,np.array(line)))
+				over_bh.write('\n'+'\t'.join(line))
+	#time to finish off the exports
+	writer1 = open('Full_Raw_P-Values.txt','w')
+	writer2 = open('Full_Bonferroni_P-Values.txt','w')
+	writer3 = open('Full_Benjamini-Hochberg_P-Values.txt','w')
+	line = list(header)
+	line.extend(strgroups)
+	writer1.write('\t'.join(line))
+	writer2.write('\t'.join(line))
+	writer3.write('\t'.join(line))
+	#now, the actual lines
+	for i in range(pvalues.shape[0]):
+		line1 = list(mot_annot[i,:])
+		line1.extend([str(item) for item in pvalues[i,:]])
+		line2 = list(mot_annot[i,:])
+		line2.extend([str(item) for item in pvalues_bonf[i,:]])
+		line3 = list(mot_annot[i,:])
+		line3.extend([str(item) for item in pvalues_bh[i,:]])
+		writer1.write('\n'+'\t'.join(line1))
+		writer2.write('\n'+'\t'.join(line2))
+		writer3.write('\n'+'\t'.join(line3))
+	writer1.close()
+	writer2.close()
+	writer3.close()
+	#now, time for the significant aspect
+	mask_bonf1 = np.nonzero(np.sum(pvalues_bonf<=args.alpha,0))[0]
+	mask_bonf2 = np.nonzero(np.sum(pvalues_bonf<=args.alpha,1))[0]
+	mask_bh1 = np.nonzero(np.sum(pvalues_bh<=args.alpha,0))[0]
+	mask_bh2 = np.nonzero(np.sum(pvalues_bh<=args.alpha,1))[0]
+	strgroups_bonf = np.array(strgroups)[mask_bonf1]
+	strgroups_bh = np.array(strgroups)[mask_bh1]
+	mot_annot_bonf = mot_annot[mask_bonf2,:]
+	mot_annot_bh = mot_annot[mask_bh2,:]
+	pvals_bonf = pvalues_bonf[mask_bonf2[:, None], mask_bonf1]
+	pvals_bh = pvalues_bh[mask_bh2[:, None], mask_bh1]
+	writer1 = open('Significant_Bonferroni_P-Values.txt','w')
+	writer2 = open('Significant_Benjamini-Hochberg_P-Values.txt','w')
+	line = list(header)
+	line.extend(list(strgroups_bonf))
+	writer1.write('\t'.join(line))
+	line = list(header)
+	line.extend(list(strgroups_bh))
+	writer2.write('\t'.join(line))
+	for i in range(pvals_bonf.shape[0]):
+		line = list(mot_annot_bonf[i,:])
+		line.extend([str(item) for item in pvals_bonf[i,:]])
+		writer1.write('\n'+'\t'.join(line))
+	for i in range(pvals_bh.shape[0]):
+		line = list(mot_annot_bh[i,:])
+		line.extend([str(item) for item in pvals_bh[i,:]])
+		writer2.write('\n'+'\t'.join(line))
+	writer1.close()
+	writer2.close()
+
+if __name__ == "__main__":
+	main()

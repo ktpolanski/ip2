@@ -1,5 +1,5 @@
 # run as:
-#   docker build -f docker/Dockerfile -t wigwams .
+#   docker build -t wigwams .
 # (with wigwams.py and wigwams_wrapper.py in the current directory)
 
 # base everything on a recent Ubuntu
@@ -13,10 +13,10 @@ RUN apt-get update && apt-get -y upgrade && \
 
 # add and configure our code
 
-# take all the stuff from here (here being where we run this, contains wigwams.py and wigwams_wrapper.py)
+# take wigwams.py and wigwams_wrapper.py, which we need
 # and put it all into /wigwams inside the docker container
 RUN mkdir /wigwams
-COPY ../wigwams.py ../wigwams_wrapper.py /wigwams/
+COPY wigwams.py wigwams_wrapper.py /wigwams/
 
 MAINTAINER Krzysztof Polanski <k.t.polanski@warwick.ac.uk>
 

@@ -22,7 +22,7 @@ def parse_args():
 	parser.add_argument('--Legacy', dest='leg', action='store_true', help='Flag. If provided, runs algorithm in legacy mode (as described in Polanski et al 2014) in terms of module mining and merging. If not provided, slightly improves those procedures.')
 	parser.add_argument('--NonRedundantOutput', dest='nro', action='store_true', help='Flag. If provided, runs algorithm in iterational redundancy removal mode which yields considerably smaller and less redundant output, but at the cost of some information loss.')
 	parser.add_argument('--PoolNumber', dest='pool', type=int, default=1, help='Number of processes to run in module mining (to potentially parallelise the mining and accelerate the code). Default: 1 (not parallel)')
-	parser.add_argument('--Mining_SetSizes', dest='sets', type=int, default=[50, 100, 150, 200, 250], nargs='+', help='Module mining. Top co-expressed gene set sizes to be scanned for evidence of dependent co-expression. Provide as space delimited list. Default: 50 100 150 200 250')
+	parser.add_argument('--Mining_SetSizes', dest='sets', default=[50, 100, 150, 200, 250], nargs='+', help='Module mining. Top co-expressed gene set sizes to be scanned for evidence of dependent co-expression. Provide as space delimited list. Default: 50 100 150 200 250')
 	parser.add_argument('--Mining_Alpha', dest='alpha', default=0.05, type=float, help='Module mining. The significance threshold for dependent co-expression testing, is Bonferroni corrected within the script. Default: 0.05')
 	parser.add_argument('--Mining_CorrelationNet', dest='corrnet', default=0.7, type=float, help='Module mining. In the case of scarce profiles, dependent co-expression testing is stopped if the top correlated genes stop being at least this PCC-correlated with the seed. Default: 0.7')
 	parser.add_argument('--Merging_Overlap', dest='merging_overlap', default=0.3, type=float, help='Module merging. The fraction of a module\'s members that have to be present in the overlap with another module spanning the same conditions to trigger merging. Default: 0.3')
@@ -30,11 +30,24 @@ def parse_args():
 	parser.add_argument('--Merging_CorrelationFilter', dest='corrfilt', default=0.8, type=float, help='Module merging. If a gene\'s profile isn\'t at least this PCC-correlated with the mean profile of the larger module, don\'t transfer it over when merging, discarding it instead. Default: 0.8')
 	parser.add_argument('--Sweeping_Overlap', dest='sweeping_overlap', default=0.5, type=float, help='Module sweeping. Discard a module spanning a subset of another module\'s conditions if its membership is made up of at least this proportion of the module with the condition superset. In non redundant output mode this becomes the upper bound of the sweeping thresholds to evaluate. Default: 0.5')
 	parser.add_argument('--Sweeping_Overlap_LowBound', dest = 'sweep_low', default = 0.1, type=float, help='Module sweeping. In non redundant output mode, the lower bound of sweeping to evaluate, with 0.05 resolution between this and the upper bound. Ignored in legacy mode. Default: 0.1')
-	parser.add_argument('--SizeThresholds', dest='thresh', default=None, type=int, nargs='+', help='Module size thresholding. Optional post-processing step to filter down the module list to modules of at least a given size. Provide as space delimited list, with first element being the desired minimal size of 2-condition modules and the last being the desired minimal size of modules across all the conditions. Default: None (procedure off)')
+	parser.add_argument('--SizeThresholds', dest='thresh', default=None, nargs='+', help='Module size thresholding. Optional post-processing step to filter down the module list to modules of at least a given size. Provide as space delimited list, with first element being the desired minimal size of 2-condition modules and the last being the desired minimal size of modules across all the conditions. Default: None (procedure off)')
 	parser.add_argument('--Export_Annotation', dest='annot', default=None, type=argparse.FileType('r'), help='TSV (tab-separated file) with an annotation carrying additional information on the genes in the mining to include in the final export. First column must match the identifiers used, second column must be a public identifier, third column onwards optional. Please remove any "unmapped" information from the mapping. Default: None (no additional annotating of export)')
 	parser.add_argument('--Export_Hyperlink', dest='hyper', default=None, type=str, help='An optional extension to the annotation, adding Excel-friendly hyperlinks to genes identified in modules to the module export in a particular online resource. Include a generic link to finding the gene IDs in the second column of the annotation in the online resource of choice, with the second column identifier place indicated with {gene}. Please provide wrapped in quotes. Default: None (no additional hyperlinks)')
 	parser.add_argument('--JobName', dest='job', default='job', type=str, help='Job name for output naming purposes. Default: job')
 	args = parser.parse_args()
+	#parse the quote stuff from iPlant. now args.sets and args.thresh are always strings
+	#if it's iPlant style ('10 10 8 5 5'), then you will have a one-element list
+	#with the first element being the '10 10 8 5 5'
+	#if it's normal style, you'll get ['10', '10', '8', '5', '5']
+	#so, if it's iPlant style, split it on spaces into a list of strings
+	#and then, regardless of iPlant style or not, convert the string lists into ints
+	if args.sets[0].find(' ') > -1:
+		args.sets = args.sets[0].split(' ')
+	args.sets = [int(item) for item in args.sets]
+	if args.thresh is not None:
+		if args.thresh[0].find(' ') > -1:
+			args.thresh = args.thresh[0].split(' ')
+		args.thresh = [int(item) for item in args.thresh]
 	return args
 
 def parse_expr_df(args):
