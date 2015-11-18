@@ -134,5 +134,5 @@ This folder houses the intermediate module processing stages, if those are of in
 
 [brown2013]: http://bioinformatics.oxfordjournals.org/content/29/13/1696.long
 [maere2005]: http://bioinformatics.oxfordjournals.org/content/21/16/3448.long
-[polanski2014]: bioinformatics.oxfordjournals.org/content/30/7/962.long
+[polanski2014]: http://bioinformatics.oxfordjournals.org/content/30/7/962.long
 [stegle2010]: http://online.liebertpub.com/doi/abs/10.1089/cmb.2009.0175
