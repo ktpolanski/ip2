@@ -1,5 +1,5 @@
 # run as:
-#   docker build -f Dockerfile-footprint -t wellington-footprint .
+#   docker build -f Dockerfile-bootstrap -t wellington-bootstrap .
 
 # base everything on a recent Ubuntu
 FROM debian:latest
@@ -40,25 +40,16 @@ RUN rm master.zip
 RUN rm Cython-0.23.4.tar.gz
 RUN rm bedops/bedops_linux_x86_64-v2.4.5.tar.bz2
 
-#get scripts
-RUN wget https://github.com/ktpolanski/ip2/archive/master.zip
-RUN unzip master.zip
-RUN mv /ip2-master/wellington/scripts /scripts
-RUN rm master.zip
-RUN rm -r ip2-master
+#scripts come in the same folder as the dockerfile now
+RUN mkdir /scripts
+ADD . /scripts/
 
 # the scripts include pyDNase
 RUN cd scripts/pyDNase-differential && python setup.py install && cd /
-
-# set the actual working directory (where the docker virtual machine will be) to where the data comes in
-WORKDIR /agave
 
 MAINTAINER Krzysztof Polanski <k.t.polanski@warwick.ac.uk>
 
 # so this is what is going to run by default when you trigger this, in the virtual machine
 # call the wellington wrapper from the other directory while staying in /agave with the files
 # note the lack of a default call later. this is a multi-script wrapper
-ENTRYPOINT ["bash", "../scripts/wellington_footprint_wrapper.sh"]
-
-# this is for communicating with the exterior, this is where it expects to get data
-VOLUME ["/agave"]
+ENTRYPOINT ["bash", "../scripts/wellington_bootstrap_wrapper.sh"]
