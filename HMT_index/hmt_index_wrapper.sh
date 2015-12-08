@@ -28,7 +28,7 @@ if [ $9 == '--NoOverlap' ]
 	then
 		bedtools subtract -a promoters.bed -b genelines.bed > promoters.bed
 fi
-bedtools getfasta -fi $1 -bed promoters.bed -fo promoters_rough.fa
+bedtools getfasta -fi $1 -bed promoters.bed -s -fo promoters_rough.fa
 #this results in some really crappy nomenclature for gene names
 #so let's make promoters.fa ourselves
 python3 /scripts/parse_promoters.py
