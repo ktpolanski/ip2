@@ -4,7 +4,7 @@ set -e
 #inputs:
 # $1 - genome
 # $2 - gff3
-# $3 - gff3 header to use
+# $3 - gff3 header to use (TAIR 'gene_id=')
 # $4 - promoter length
 # $5 - MEME-friendly motif input
 # $6 - significance threshold
@@ -26,7 +26,8 @@ bedtools flank -l $4 -r 0 -s -i genelines.bed -g bedgenome.genome > promoters.be
 #remove overlapping promoter chunks
 if [ $9 == '--NoOverlap' ]
 	then
-		bedtools subtract -a promoters.bed -b genelines.bed > promoters.bed
+		bedtools subtract -a promoters.bed -b genelines.bed > promoters2.bed
+		mv promoters2.bed promoters.bed
 fi
 bedtools getfasta -fi $1 -bed promoters.bed -s -fo promoters_rough.fa
 #this results in some really crappy nomenclature for gene names
