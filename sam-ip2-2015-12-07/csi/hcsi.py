@@ -6,6 +6,8 @@ import argparse
 import sys
 import warnings
 
+import pickle
+
 import csi
 import AbstractGibbs as ag
 from main import parse_gp_hyperparam_priors
@@ -249,7 +251,10 @@ def runGibbs(gene, inp, gpprior, betaprior, args):
 		mask = ismember(args.genes, list(gibbs.sampledValuesHyperNetwork[i][0]))
 		out[-1,numtemp[mask]] += 1
 	out[-1,:] /= len(gibbs.sampledValuesHyperNetwork)
-	return (out, gene)
+	chain = gibbs.sampledValues
+	'''TEMPORARY CHAIN DUMP. REMOVE IN THE LONG RUN'''
+	chain.append([gibbs.sampledValuesHyperNetwork])
+	return (out, chain, gene)
 
 def _pool_init(inp_, gpprior_, betaprior_, args_):
 	global inp, gpprior, betaprior, args
@@ -305,11 +310,14 @@ def main():
 		template[0,1:] = np.asarray(genes)
 		output.append(template)
 	numtemp = 1+np.arange(len(genes))
+	'''TEMPORARY CHAIN DUMP. EVENTUALLY CLEAN UP CODE BELOW'''
+	chains = []
 	#"Parallelised or not, here I come!" - Gibbs sampler, 2016
 	if args.pool > 1:
 		p = mp.Pool(args.pool, _pool_init, (inp, gpprior, betaprior, args))
-		for (out, gene) in p.imap_unordered(pool_runGibbs, genes):
+		for (out, chain, gene) in p.imap_unordered(pool_runGibbs, genes):
 			#wrap it into a one-element list so that ismember sees it whole
+			chains.append(chain)
 			mask = ismember(genes,[gene])
 			ind = numtemp[mask][0]
 			#sneaking in the hypernetwork as the last "condition"
@@ -318,14 +326,18 @@ def main():
 	else:
 		for gene in genes:
 			#we don't need to re-catch the gene as we have it already
-			(out, blaa) = runGibbs(gene, inp, gpprior, betaprior, args)
+			(out, chain, blaa) = runGibbs(gene, inp, gpprior, betaprior, args)
 			#wrap it into a one-element list so that ismember sees it whole
+			chains.append(chain)
 			mask = ismember(genes,[gene])
 			ind = numtemp[mask][0]
 			#sneaking in the hypernetwork as the last "condition"
 			for i in np.arange(len(conditions)+1):
 				output[i][ind,1:] = np.asarray([str(x) for x in out[i,:]])
 	#spit the things out
+	dumpfile = open('chains.pickle','wb')
+	pickle.dump(chains,dumpfile)
+	dumpfile.close()
 	conditions = list(conditions)
 	conditions.append('hypernetwork')
 	for i in np.arange(len(conditions)):
