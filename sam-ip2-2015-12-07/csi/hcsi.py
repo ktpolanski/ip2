@@ -23,10 +23,11 @@ def parse_args():
 	parser.add_argument('--Input', dest='input', type=argparse.FileType('r'), required=True, help='The CSV file featuring your expression data. First column for gene names, first row for condition names repeated for each condition time point, second row for condition time point information.')
 	parser.add_argument('--Depth', dest='depth', type=int, default=2, help='CSI parental set depth truncation to maintain computational tractability. Default: 2')
 	parser.add_argument('--Prior', dest='gpprior', type=str, default='10,0.1', help='CSI Gaussian Process prior, provided as \'shape,scale\' for a gamma distribution or \'uniform\' for a uniform distribution. Default: \'10,0.1\'')
+	parser.add_argument('--BetaPrior', dest='betaprior', type=str, default='1,1', help='hCSI temperature prior, provided as \'shape,scale\' for a gamma distribution. Default: \'1,1\'')
 	parser.add_argument('--Genes', dest='genes', default=None, nargs='+', help='Child gene set to evaluate, if you wish to only run hCSI on a subset of the available gene space. Provide as space delimited names matching the CSV file. Default: None (analyse the whole dataset)')
 	parser.add_argument('--Pool', dest='pool', type=int, default=1, help='Number of threads to open up for parallelising hCSI on a per-gene basis. Default: 1 (no parallelising)')
-	parser.add_argument('--Samples', dest='samples', type=int, default=3000, help='Number of Gibbs updates to perform within hCSI. Default: 3000')
-	parser.add_argument('--BurnIn', dest='burnin', type=int, default=500, help='Number of initial Gibbs updates to discard as burn-in. Default: 500')
+	parser.add_argument('--Samples', dest='samples', type=int, default=100000, help='Number of Gibbs updates to perform within hCSI. Default: 100,000')
+	parser.add_argument('--BurnIn', dest='burnin', type=int, default=10000, help='Number of initial Gibbs updates to discard as burn-in. Default: 10,000')
 	args = parser.parse_args()
 	return args
 
@@ -59,7 +60,7 @@ class GibbsHCSI(ag.AbstractGibbs):
         self.rvHyperNetwork = rvHyperNetwork
         self.sampledValuesHyperNetwork = []
     
-    def gibbsUpdate(self):
+    def gibbsUpdate(self,iteration_number):
     #expand the thing with hypernetwork sampling and parameter MCMC
         #run through all the variables
         valList = []
@@ -78,18 +79,70 @@ class GibbsHCSI(ag.AbstractGibbs):
         distribution = self.rvHyperNetwork.getConditionalDistribution(valList,betaList)
         valInd = np.random.choice(np.arange(len(pset)),size=1,p=distribution)
         self.rvHyperNetwork.setCurrentValue(pset[valInd[0]])
-        '''TODO: theta and beta MCMC step'''
+        #hyperparameter and temperature sampling
+        for i in self.indexList:
+            #sample the hyperparameters
+            #we've left the "old" hyperparameters in .thetajump on the previous iteration
+            old_hypers = self.rvl[i].thetajump.hypers
+            new_hypers = sp.exp(sp.log(old_hypers)+self.rvl[i].thetaconst*sp.randn(3))
+            #set the parental set accordingly
+            self.rvl[i].thetajump.pset = [valList[i]]
+            #compute the new log likelihood first due to how the .hypers toggle works
+            #(we may have changed the pset, hence need to make sure the ._updatell fires)
+            self.rvl[i].thetajump.hypers = new_hypers
+            new_ll = self.rvl[i].thetajump.logliks()
+            #note we're leaving the old hypers in .thetajump if it doesn't jump
+            self.rvl[i].thetajump.hypers = old_hypers
+            old_ll = self.rvl[i].thetajump.logliks()
+            #numeric thing before exping, scale to largest likelihood
+            (new_ll,old_ll) = (new_ll,old_ll)-np.max((new_ll,old_ll))
+            #compute P(hypers)
+            p_hypers_old = np.prod(sp.stats.gamma.pdf(old_hypers,a=self.rvl[i].em._prior_shape,scale=self.rvl[i].em._prior_scale))
+            p_hypers_new = np.prod(sp.stats.gamma.pdf(new_hypers,a=self.rvl[i].em._prior_shape,scale=self.rvl[i].em._prior_scale))
+            #transition probability
+            p_accept_theta = (sp.exp(new_ll) * p_hypers_new) / (sp.exp(old_ll) * p_hypers_old)
+            if np.random.uniform() <= p_accept_theta:
+                #we accept the new hypers
+                self.rvl[i].thetajump.hypers = new_hypers
+                self.rvl[i].em.hypers = new_hypers
+                self.rvl[i].thetacount += 1
+            #sample the beta
+            old_beta = self.rvl[i].beta
+            new_beta = sp.exp(sp.log(old_beta)+self.rvl[i].betaconst*sp.randn())
+            #compute the probabilities
+            p_beta_old = sp.exp((-1)*old_beta*hamming(valList[i],self.rvHyperNetwork.currentValue)) * sp.stats.gamma.pdf(old_beta,a=self.rvl[i].betaprior[0],scale=self.rvl[i].betaprior[1])
+            p_beta_new = sp.exp((-1)*new_beta*hamming(valList[i],self.rvHyperNetwork.currentValue)) * sp.stats.gamma.pdf(new_beta,a=self.rvl[i].betaprior[0],scale=self.rvl[i].betaprior[1])
+            p_accept_beta = p_beta_new/p_beta_old
+            if np.random.uniform() <= p_accept_beta:
+                #we accept the new beta
+                self.rvl[i].beta = new_beta
+                self.rvl[i].betacount += 1
+            #re-evaluate constants on 100 Gibbs goes
+            if iteration_number % 100 == 0:
+                #aim for 25 jumps on each parameter because stats and Chris said so
+                #too many jumps, too local, push it out of its comfort zone
+                if self.rvl[i].thetacount > 35:
+                    self.rvl[i].thetaconst *= 1.1
+                #too few jumps, hopping around the place too much, localise it a bit
+                elif self.rvl[i].thetacount < 15:
+                    self.rvl[i].thetaconst *= 0.9
+                if self.rvl[i].betacount > 35:
+                    self.rvl[i].betaconst *= 1.1
+                elif self.rvl[i].betacount < 15:
+                    self.rvl[i].betaconst *= 0.9
+                self.rvl[i].betacount = 0
+                self.rvl[i].thetacount = 0
 
     def sample(self, repeats=1):
     #add hypernetwork sample storage
         for i in range(repeats):
-            self.gibbsUpdate();
+            self.gibbsUpdate(i+1)
             for j in self.indexList:
                 self.sampledValues[j].append(self.rvl[j].getCurrentValue())
             self.sampledValuesHyperNetwork.append(self.rvHyperNetwork.getCurrentValue())
 
 class RandomVariableCondition(ag.RandomVariable):
-    def __init__(self, csidata, cond, gene, gpprior, depth):
+    def __init__(self, csidata, cond, gene, gpprior, betaprior, depth):
     #override init to include all sorts of CSI stuffs
         #extract the data frame columns that actually have our condition's data
         #(without killing the fine balance of the tuple indexing)
@@ -104,13 +157,24 @@ class RandomVariableCondition(ag.RandomVariable):
             self.em.set_priors(gpprior[0], gpprior[1])
         #prepare the EM object
         self.em.setup(self.cc.allParents(gene,depth))
-        '''TODO: sample beta'''
+        #beta initialised at 1 as per Chris recommendation
         self.beta = 1
-        '''TODO: sample beta'''
-        #going rogue here - starting with empty network
-        self.currentValue = self.em.pset[0];
-        self.valRange = self.em.pset;
-        self.distribution = list(range(len(self.valRange)));
+        self.betaprior = betaprior
+        #MCMC constants
+        self.thetaconst = 1
+        self.betaconst = 1
+        self.thetacount = 0
+        self.betacount = 0
+        #random initialisation
+        ind = np.random.choice(np.arange(len(self.em.pset)),size=1)
+        self.currentValue = self.em.pset[ind]
+        self.valRange = self.em.pset
+        self.distribution = list(range(len(self.valRange)))
+        #create helper EM object for theta tuning
+        #initialise its hyperparameters to be the same as the main EM object
+        self.thetajump = self.cc.getEm()
+        self.thetajump.setup([self.currentValue])
+        self.thetajump.hypers = self.em.hypers
     
     def getConditionalDistribution(self, hyperparent):
     #override with actual computation
@@ -136,9 +200,10 @@ class RandomVariableHyperNetwork(ag.RandomVariable):
     def __init__(self, csidata, gene, depth):
     #override init to include all sorts of CSI stuffs
 	    cc = csi.Csi(csidata)
-	    self.valRange = cc.allParents(gene,depth);
-	    self.currentValue = self.valRange[0];
-	    self.distribution = list(range(len(self.valRange)));
+	    self.valRange = cc.allParents(gene,depth)
+	    ind = np.random.choice(np.arange(len(self.valRange)),size=1)
+	    self.currentValue = self.valRange[ind]
+	    self.distribution = list(range(len(self.valRange)))
     
     def getConditionalDistribution(self, condParents, betas):
     #override with actual computation
@@ -156,12 +221,13 @@ class RandomVariableHyperNetwork(ag.RandomVariable):
     #we actually need the normalisation
         self.distribution = self.distribution/np.sum(self.distribution)
 
-def runGibbs(gene, inp, gpprior, args):
+def runGibbs(gene, inp, gpprior, betaprior, args):
+	print('Processing '+gene+'...')
 	hnrv = RandomVariableHyperNetwork(inp,gene,args.depth)
 	crv = []
 	conditions = np.unique([x[0] for x in inp.columns.values])
 	for cond in conditions:
-		crv.append(RandomVariableCondition(inp,cond,gene,gpprior,args.depth))
+		crv.append(RandomVariableCondition(inp,cond,gene,gpprior,betaprior,args.depth))
 	gibbs = GibbsHCSI(crv,hnrv)
 	gibbs.sample(args.samples)
 	#ditch the burn-in
@@ -183,14 +249,15 @@ def runGibbs(gene, inp, gpprior, args):
 	out[-1,:] /= len(gibbs.sampledValuesHyperNetwork)
 	return (out, gene)
 
-def _pool_init(inp_, gpprior_, args_):
-	global inp, gpprior, args
+def _pool_init(inp_, gpprior_, betaprior_, args_):
+	global inp, gpprior, betaprior, args
 	inp = inp_
 	gpprior = gpprior_
+	betaprior = betaprior_
 	args = args_
 
 def pool_runGibbs(gene):
-	return runGibbs(gene,inp, gpprior, args)
+	return runGibbs(gene,inp, gpprior, betaprior, args)
 
 def main():
 	#read arguments
@@ -202,7 +269,7 @@ def main():
 	if args.depth < 1:
 		sys.stderr.write("Error: truncation depth must be greater than or equal to one")
 		sys.exit(1)
-	#parse GP priors
+	#parse priors
 	if args.gpprior is None or args.gpprior == 'uniform':
 		gpprior = None
 	else:
@@ -211,6 +278,11 @@ def main():
 		except ValueError(s):
 			sys.stderr.write("Error: "+s)
 			sys.exit(1)
+	try:
+		betaprior = parse_gp_hyperparam_priors(args.betaprior)
+	except ValueError(s):
+		sys.stderr.write("Error: "+s)
+		sys.exit(1)
 	#parse gene list
 	genes = args.genes
 	if genes is None:
@@ -233,7 +305,7 @@ def main():
 	numtemp = 1+np.arange(len(genes))
 	#"Parallelised or not, here I come!" - Gibbs sampler, 2016
 	if args.pool > 1:
-		p = mp.Pool(args.pool, _pool_init, (inp, gpprior, args))
+		p = mp.Pool(args.pool, _pool_init, (inp, gpprior, betaprior, args))
 		for (out, gene) in p.imap_unordered(pool_runGibbs, genes):
 			#wrap it into a one-element list so that ismember sees it whole
 			mask = ismember(genes,[gene])
@@ -244,7 +316,7 @@ def main():
 	else:
 		for gene in genes:
 			#we don't need to re-catch the gene as we have it already
-			(out, blaa) = runGibbs(gene, inp, gpprior, args)
+			(out, blaa) = runGibbs(gene, inp, gpprior, betaprior, args)
 			#wrap it into a one-element list so that ismember sees it whole
 			mask = ismember(genes,[gene])
 			ind = numtemp[mask][0]
