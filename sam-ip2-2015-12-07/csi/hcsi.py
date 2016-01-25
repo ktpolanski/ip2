@@ -140,6 +140,8 @@ class GibbsHCSI(ag.AbstractGibbs):
             for j in self.indexList:
                 self.sampledValues[j].append(self.rvl[j].getCurrentValue())
             self.sampledValuesHyperNetwork.append(self.rvHyperNetwork.getCurrentValue())
+            if (i+1) % 5000 == 0:
+                print(str(i+1)+' iterations done.')
 
 class RandomVariableCondition(ag.RandomVariable):
     def __init__(self, csidata, cond, gene, gpprior, betaprior, depth):
