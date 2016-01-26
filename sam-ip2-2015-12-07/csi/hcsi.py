@@ -26,11 +26,13 @@ def parse_args():
 	parser.add_argument('--Depth', dest='depth', type=int, default=2, help='CSI parental set depth truncation to maintain computational tractability. Default: 2')
 	parser.add_argument('--Prior', dest='gpprior', type=str, default='10,0.1', help='CSI Gaussian Process prior, provided as \'shape,scale\' for a gamma distribution or \'uniform\' for a uniform distribution. Default: \'10,0.1\'')
 	parser.add_argument('--BetaPrior', dest='betaprior', type=str, default='1,1', help='hCSI temperature prior, provided as \'shape,scale\' for a gamma distribution. Default: \'1,1\'')
+	parser.add_argument('--NoStandardising', dest='standardise', action='store_false', help='Flag. If provided, the data will not be standardised on a per-gene, per-condition basis.')
 	parser.add_argument('--Genes', dest='genes', default=None, nargs='+', help='Child gene set to evaluate, if you wish to only run hCSI on a subset of the available gene space. Provide as space delimited names matching the CSV file. Default: None (analyse the whole dataset)')
 	parser.add_argument('--Pool', dest='pool', type=int, default=1, help='Number of threads to open up for parallelising hCSI on a per-gene basis. Default: 1 (no parallelising)')
 	parser.add_argument('--Samples', dest='samples', type=int, default=100000, help='Number of Gibbs updates to perform within hCSI. Default: 100,000')
 	parser.add_argument('--BurnIn', dest='burnin', type=int, default=10000, help='Number of initial Gibbs updates to discard as burn-in. Default: 10,000')
 	parser.add_argument('--Pickle', dest='pickle', action='store_true', help='Flag. If provided, the obtained Gibbs value chains for individual models and the hypernetwork are stored as a Python Pickle. Refer to readme for more in depth formatting information.')
+	parser.add_argument('--GibbsVerbose', dest='verbose', action='store_true', help='Flag. If provided, the script will print status updates once every 5,000 Gibbs updates.')
 	args = parser.parse_args()
 	return args
 
@@ -136,7 +138,7 @@ class GibbsHCSI(ag.AbstractGibbs):
                 self.rvl[i].betacount = 0
                 self.rvl[i].thetacount = 0
 
-    def sample(self, repeats=1):
+    def sample(self, repeats=1, verbose=False):
     #add hypernetwork sample storage
         for i in range(repeats):
             self.gibbsUpdate(i+1)
@@ -147,13 +149,16 @@ class GibbsHCSI(ag.AbstractGibbs):
                 print(str(i+1)+' iterations done.')
 
 class RandomVariableCondition(ag.RandomVariable):
-    def __init__(self, csidata, cond, gene, gpprior, betaprior, depth):
+    def __init__(self, csidata, cond, gene, gpprior, betaprior, depth, standardise):
     #override init to include all sorts of CSI stuffs
         #extract the data frame columns that actually have our condition's data
         #(without killing the fine balance of the tuple indexing)
         colNames = np.asarray([x[0] for x in csidata.columns.values])
         numtemp = np.arange(len(colNames))
         inp = csidata.iloc[:,numtemp[colNames==cond]]
+        #standardising
+        if standardise:
+            inp[:][:] = sp.stats.mstats.zscore(inp,axis=1,ddof=1)
         #some processing stuff borrowed from the CSI code
         assert (inp.columns.is_monotonic_increasing)
         self.cc = csi.Csi(inp)
@@ -236,9 +241,9 @@ def runGibbs(gene_id, genes, inp, gpprior, betaprior, args):
 	crv = []
 	conditions = np.unique([x[0] for x in inp.columns.values])
 	for cond in conditions:
-		crv.append(RandomVariableCondition(inp,cond,gene,gpprior,betaprior,args.depth))
+		crv.append(RandomVariableCondition(inp,cond,gene,gpprior,betaprior,args.depth,args.standardise))
 	gibbs = GibbsHCSI(crv,hnrv)
-	gibbs.sample(args.samples)
+	gibbs.sample(args.samples, args.verbose)
 	#ditch the burn-in
 	for i in np.arange(len(gibbs.sampledValues)):
 		gibbs.sampledValues[i] = gibbs.sampledValues[i][args.burnin:]
