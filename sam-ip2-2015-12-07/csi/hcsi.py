@@ -30,6 +30,7 @@ def parse_args():
 	parser.add_argument('--Pool', dest='pool', type=int, default=1, help='Number of threads to open up for parallelising hCSI on a per-gene basis. Default: 1 (no parallelising)')
 	parser.add_argument('--Samples', dest='samples', type=int, default=100000, help='Number of Gibbs updates to perform within hCSI. Default: 100,000')
 	parser.add_argument('--BurnIn', dest='burnin', type=int, default=10000, help='Number of initial Gibbs updates to discard as burn-in. Default: 10,000')
+	parser.add_argument('--Pickle', dest='pickle', action='store_true', help='Flag. If provided, the obtained Gibbs value chains for individual models and the hypernetwork are stored as a Python Pickle. Refer to readme for more in depth formatting information.')
 	args = parser.parse_args()
 	return args
 
@@ -225,7 +226,11 @@ class RandomVariableHyperNetwork(ag.RandomVariable):
     #we actually need the normalisation
         self.distribution = self.distribution/np.sum(self.distribution)
 
-def runGibbs(gene, inp, gpprior, betaprior, args):
+def runGibbs(gene_id, genes, inp, gpprior, betaprior, args):
+	#fish out the single gene via gene_id, also set the seeds via that
+	gene = genes[gene_id]
+	np.random.seed(gene_id)
+	#commence proper part of thing
 	print('Processing '+gene+'...')
 	hnrv = RandomVariableHyperNetwork(inp,gene,args.depth)
 	crv = []
@@ -251,20 +256,24 @@ def runGibbs(gene, inp, gpprior, betaprior, args):
 		mask = ismember(args.genes, list(gibbs.sampledValuesHyperNetwork[i][0]))
 		out[-1,numtemp[mask]] += 1
 	out[-1,:] /= len(gibbs.sampledValuesHyperNetwork)
-	chain = gibbs.sampledValues
-	'''TEMPORARY CHAIN DUMP. REMOVE IN THE LONG RUN'''
-	chain.append([gibbs.sampledValuesHyperNetwork])
+	#potential chain storing
+	if args.pickle:
+		chain = gibbs.sampledValues
+		chain.append([gibbs.sampledValuesHyperNetwork])
+	else:
+		chain = None
 	return (out, chain, gene)
 
-def _pool_init(inp_, gpprior_, betaprior_, args_):
-	global inp, gpprior, betaprior, args
+def _pool_init(genes_, inp_, gpprior_, betaprior_, args_):
+	global genes, inp, gpprior, betaprior, args
+	genes = genes_
 	inp = inp_
 	gpprior = gpprior_
 	betaprior = betaprior_
 	args = args_
 
-def pool_runGibbs(gene):
-	return runGibbs(gene,inp, gpprior, betaprior, args)
+def pool_runGibbs(gene_id):
+	return runGibbs(gene_id, genes, inp, gpprior, betaprior, args)
 
 def main():
 	#read arguments
@@ -310,34 +319,35 @@ def main():
 		template[0,1:] = np.asarray(genes)
 		output.append(template)
 	numtemp = 1+np.arange(len(genes))
-	'''TEMPORARY CHAIN DUMP. EVENTUALLY CLEAN UP CODE BELOW'''
 	chains = []
 	#"Parallelised or not, here I come!" - Gibbs sampler, 2016
 	if args.pool > 1:
-		p = mp.Pool(args.pool, _pool_init, (inp, gpprior, betaprior, args))
-		for (out, chain, gene) in p.imap_unordered(pool_runGibbs, genes):
+		p = mp.Pool(args.pool, _pool_init, (genes, inp, gpprior, betaprior, args))
+		for (out, chain, gene) in p.imap_unordered(pool_runGibbs, np.arange(len(genes))):
 			#wrap it into a one-element list so that ismember sees it whole
-			chains.append(chain)
 			mask = ismember(genes,[gene])
 			ind = numtemp[mask][0]
+			#the code will spit out Nones if not set to pickle. append with peace
+			chains.append(chain)
 			#sneaking in the hypernetwork as the last "condition"
 			for i in np.arange(len(conditions)+1):
 				output[i][ind,1:] = np.asarray([str(x) for x in out[i,:]])
 	else:
-		for gene in genes:
-			#we don't need to re-catch the gene as we have it already
-			(out, chain, blaa) = runGibbs(gene, inp, gpprior, betaprior, args)
+		for gene_id in genes:
+			(out, chain, gene) = runGibbs(gene_id, genes, inp, gpprior, betaprior, args)
 			#wrap it into a one-element list so that ismember sees it whole
-			chains.append(chain)
 			mask = ismember(genes,[gene])
 			ind = numtemp[mask][0]
+			#the code will spit out Nones if not set to pickle. append with peace
+			chains.append(chain)
 			#sneaking in the hypernetwork as the last "condition"
 			for i in np.arange(len(conditions)+1):
 				output[i][ind,1:] = np.asarray([str(x) for x in out[i,:]])
 	#spit the things out
-	dumpfile = open('chains.pickle','wb')
-	pickle.dump(chains,dumpfile)
-	dumpfile.close()
+	if args.pickle:
+		dumpfile = open('chains.pickle','wb')
+		pickle.dump(chains,dumpfile)
+		dumpfile.close()
 	conditions = list(conditions)
 	conditions.append('hypernetwork')
 	for i in np.arange(len(conditions)):

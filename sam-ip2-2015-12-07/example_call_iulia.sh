@@ -1,0 +1,1 @@
+docker run -it --rm -v $PWD:/scratch -w /scratch -v /etc/passwd:/etc/passwd -u igherman csi-iulia
