@@ -54,6 +54,36 @@ def ismember(a, b):
             bind[elt] = True
     return np.asarray([bind.get(itm, False) for itm in a])
 
+def loglik_local(em, our_pset, hypers):
+	'''Compute a single instance of a log likelihood with altered hyperparameters'''
+	#extract data
+	X = em.X.values
+	Y = em.Y.values
+	#what's actually in our parental set?
+	genes = list(em.X.columns)
+	inds_X = []
+	inds_Y = []
+	for i in np.arange(len(genes)):
+		if genes[i] in our_pset[0]:
+			inds_X.append(i)
+		if genes[i] == our_pset[1]:
+			inds_Y.append(i)
+			inds_X.append(i)
+	#now we can take the appropriate data chunks
+	X = X[:,inds_X]
+	Y = Y[:,inds_Y]
+	#likelihood computation proper
+	thing = X / hypers[1]
+	dist = np.zeros((len(Y),len(Y)))
+	for i in np.arange(len(Y)):
+		for j in np.arange(len(Y)):
+			dist[i,j] = np.sum(np.square(thing[i,:]-thing[j,:]))
+	K = hypers[0]*hypers[0]*sp.exp((-1/2)*dist)
+	L = spl.cho_factor(K + hypers[2]*hypers[2]*npm.eye(len(Y)))
+	alpha = spl.cho_solve(L,Y)
+	out = (-0.5)*np.dot(np.transpose(Y),alpha)-np.sum(np.log(np.diag(L[0])))-(X.shape[0]/2)*np.log(2*math.pi)
+	return out
+
 class GibbsHCSI(ag.AbstractGibbs):
     def __init__(self, rvObjList, rvHyperNetwork):
     #add a separate hypernetwork rv
@@ -87,18 +117,11 @@ class GibbsHCSI(ag.AbstractGibbs):
         #hyperparameter and temperature sampling
         for i in self.indexList:
             #sample the hyperparameters
-            #we've left the "old" hyperparameters in .thetajump on the previous iteration
-            old_hypers = self.rvl[i].thetajump.hypers
+            old_hypers = self.rvl[i].em.hypers
             new_hypers = sp.exp(sp.log(old_hypers)+self.rvl[i].thetaconst*sp.randn(3))
-            #set the parental set accordingly
-            self.rvl[i].thetajump.pset = [valList[i]]
-            #compute the new log likelihood first due to how the .hypers toggle works
-            #(we may have changed the pset, hence need to make sure the ._updatell fires)
-            self.rvl[i].thetajump.hypers = new_hypers
-            new_ll = self.rvl[i].thetajump.logliks()
-            #note we're leaving the old hypers in .thetajump if it doesn't jump
-            self.rvl[i].thetajump.hypers = old_hypers
-            old_ll = self.rvl[i].thetajump.logliks()
+            #compute log likelihoods
+            old_ll = loglik_local(self.rvl[i].em, valList[i], old_hypers)
+            new_ll = loglik_local(self.rvl[i].em, valList[i], new_hypers)
             #numeric thing before exping, scale to largest likelihood
             (new_ll,old_ll) = (new_ll,old_ll)-np.max((new_ll,old_ll))
             #compute P(hypers)
@@ -108,20 +131,27 @@ class GibbsHCSI(ag.AbstractGibbs):
             p_accept_theta = (sp.exp(new_ll) * p_hypers_new) / (sp.exp(old_ll) * p_hypers_old)
             if np.random.uniform() <= p_accept_theta:
                 #we accept the new hypers
-                self.rvl[i].thetajump.hypers = new_hypers
                 self.rvl[i].em.hypers = new_hypers
                 self.rvl[i].thetacount += 1
-            #sample the beta
+            '''VISIBLE BREAK'''
+            #sample the beta (apparently Chris doesn't use the log space shift thing here)
             old_beta = self.rvl[i].beta
-            new_beta = sp.exp(sp.log(old_beta)+self.rvl[i].betaconst*sp.randn())
+            new_beta = old_beta+self.rvl[i].betaconst*sp.randn()
+            #prepare the scaling constants
+            Z = np.zeros(len(self.rvl[i].em.pset))
+            for j in np.arange(len(self.rvl[i].em.pset)):
+                Z[j] = hamming(self.rvl[i].em.pset[j],self.rvHyperNetwork.currentValue)
+            const_old = np.sum(np.exp((-1)*old_beta*Z))
+            const_new = np.sum(np.exp((-1)*new_beta*Z))
             #compute the probabilities
-            p_beta_old = sp.exp((-1)*old_beta*hamming(valList[i],self.rvHyperNetwork.currentValue)) * sp.stats.gamma.pdf(old_beta,a=self.rvl[i].betaprior[0],scale=self.rvl[i].betaprior[1])
-            p_beta_new = sp.exp((-1)*new_beta*hamming(valList[i],self.rvHyperNetwork.currentValue)) * sp.stats.gamma.pdf(new_beta,a=self.rvl[i].betaprior[0],scale=self.rvl[i].betaprior[1])
+            p_beta_old = sp.exp((-1)*old_beta*hamming(valList[i],self.rvHyperNetwork.currentValue))/const_old * sp.stats.gamma.pdf(old_beta,a=self.rvl[i].betaprior[0],scale=self.rvl[i].betaprior[1])
+            p_beta_new = sp.exp((-1)*new_beta*hamming(valList[i],self.rvHyperNetwork.currentValue))/const_new * sp.stats.gamma.pdf(new_beta,a=self.rvl[i].betaprior[0],scale=self.rvl[i].betaprior[1])
             p_accept_beta = p_beta_new/p_beta_old
             if np.random.uniform() <= p_accept_beta:
                 #we accept the new beta
                 self.rvl[i].beta = new_beta
                 self.rvl[i].betacount += 1
+            '''VISIBLE BREAK'''
             #re-evaluate constants on 100 Gibbs goes
             if iteration_number % 100 == 0:
                 #aim for 25 jumps on each parameter because stats and Chris said so
@@ -168,12 +198,12 @@ class RandomVariableCondition(ag.RandomVariable):
             self.em.set_priors(gpprior[0], gpprior[1])
         #prepare the EM object
         self.em.setup(self.cc.allParents(gene,depth))
-        #beta initialised at 1 as per Chris recommendation
-        self.beta = 1
+        #beta initialised at 0.1 as per Chris code (1 was his recommendation)
+        self.beta = 0.1
         self.betaprior = betaprior
-        #MCMC constants
-        self.thetaconst = 1
-        self.betaconst = 1
+        #MCMC constants (0.1 in code, 1 recommendation)
+        self.thetaconst = 0.1
+        self.betaconst = 0.1
         self.thetacount = 0
         self.betacount = 0
         #random initialisation
@@ -181,11 +211,6 @@ class RandomVariableCondition(ag.RandomVariable):
         self.currentValue = self.em.pset[ind]
         self.valRange = self.em.pset
         self.distribution = list(range(len(self.valRange)))
-        #create helper EM object for theta tuning
-        #initialise its hyperparameters to be the same as the main EM object
-        self.thetajump = self.cc.getEm()
-        self.thetajump.setup([self.currentValue])
-        self.thetajump.hypers = self.em.hypers
     
     def getConditionalDistribution(self, hyperparent):
     #override with actual computation
