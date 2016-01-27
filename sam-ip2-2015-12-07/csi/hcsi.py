@@ -6,9 +6,6 @@ import argparse
 import sys
 import warnings
 import pickle
-import numpy.matlib as npm
-import scipy.linalg as spl
-import math
 
 import csi
 import AbstractGibbs as ag
@@ -56,36 +53,6 @@ def ismember(a, b):
             bind[elt] = True
     return np.asarray([bind.get(itm, False) for itm in a])
 
-def loglik_local(em, our_pset, hypers):
-	'''Compute a single instance of a log likelihood with altered hyperparameters'''
-	#extract data
-	X = em.X.values
-	Y = em.Y.values
-	#what's actually in our parental set?
-	genes = list(em.X.columns)
-	inds_X = []
-	inds_Y = []
-	for i in np.arange(len(genes)):
-		if genes[i] in our_pset[0]:
-			inds_X.append(i)
-		if genes[i] == our_pset[1]:
-			inds_Y.append(i)
-			inds_X.append(i)
-	#now we can take the appropriate data chunks
-	X = X[:,inds_X]
-	Y = Y[:,inds_Y]
-	#likelihood computation proper
-	thing = X / hypers[1]
-	dist = np.zeros((len(Y),len(Y)))
-	for i in np.arange(len(Y)):
-		for j in np.arange(len(Y)):
-			dist[i,j] = np.sum(np.square(thing[i,:]-thing[j,:]))
-	K = hypers[0]*hypers[0]*sp.exp((-1/2)*dist)
-	L = spl.cho_factor(K + hypers[2]*hypers[2]*npm.eye(len(Y)))
-	alpha = spl.cho_solve(L,Y)
-	out = (-0.5)*np.dot(np.transpose(Y),alpha)-np.sum(np.log(np.diag(L[0])))-(X.shape[0]/2)*np.log(2*math.pi)
-	return out
-
 class GibbsHCSI(ag.AbstractGibbs):
     def __init__(self, rvObjList, rvHyperNetwork):
     #add a separate hypernetwork rv
@@ -121,9 +88,12 @@ class GibbsHCSI(ag.AbstractGibbs):
             #sample the hyperparameters
             old_hypers = self.rvl[i].em.hypers
             new_hypers = sp.exp(sp.log(old_hypers)+self.rvl[i].thetaconst*sp.randn(3))
-            #compute log likelihoods
-            old_ll = loglik_local(self.rvl[i].em, valList[i], old_hypers)
-            new_ll = loglik_local(self.rvl[i].em, valList[i], new_hypers)
+            #set up the thetajumps and compute logliks
+            self.rvl[i].thetajump.setup([valList[i]])
+            self.rvl[i].thetajump.hypers = old_hypers
+            old_ll = self.rvl[i].thetajump.logliks()[0]
+            self.rvl[i].thetajump.hypers = new_hypers
+            new_ll = self.rvl[i].thetajump.logliks()[0]
             #numeric thing before exping, scale to largest likelihood
             (new_ll,old_ll) = (new_ll,old_ll)-np.max((new_ll,old_ll))
             #compute P(hypers)
@@ -213,6 +183,8 @@ class RandomVariableCondition(ag.RandomVariable):
         self.currentValue = self.em.pset[ind]
         self.valRange = self.em.pset
         self.distribution = list(range(len(self.valRange)))
+        #thetajump setup, everything will be dealt with later
+        self.thetajump = self.cc.getEm()
     
     def getConditionalDistribution(self, hyperparent):
     #override with actual computation
