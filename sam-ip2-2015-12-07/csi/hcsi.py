@@ -28,8 +28,8 @@ def parse_args():
 	parser.add_argument('--NoStandardising', dest='standardise', action='store_false', help='Flag. If provided, the data will not be standardised on a per-gene, per-condition basis.')
 	parser.add_argument('--Genes', dest='genes', default=None, nargs='+', help='Child gene set to evaluate, if you wish to only run hCSI on a subset of the available gene space. Provide as space delimited names matching the CSV file. Default: None (analyse the whole dataset)')
 	parser.add_argument('--Pool', dest='pool', type=int, default=1, help='Number of threads to open up for parallelising hCSI on a per-gene basis. Default: 1 (no parallelising)')
-	parser.add_argument('--Samples', dest='samples', type=int, default=100000, help='Number of Gibbs updates to perform within hCSI. Default: 100,000')
-	parser.add_argument('--BurnIn', dest='burnin', type=int, default=10000, help='Number of initial Gibbs updates to discard as burn-in. Default: 10,000')
+	parser.add_argument('--Samples', dest='samples', type=int, default=25000, help='Number of Gibbs updates to perform within hCSI. Default: 25,000')
+	parser.add_argument('--BurnIn', dest='burnin', type=int, default=2500, help='Number of initial Gibbs updates to discard as burn-in. Default: 2,500')
 	parser.add_argument('--Pickle', dest='pickle', action='store_true', help='Flag. If provided, the obtained Gibbs value chains for individual models and the hypernetwork are stored as a Python Pickle. Refer to readme for more in depth formatting information.')
 	parser.add_argument('--GibbsVerbose', dest='verbose', action='store_true', help='Flag. If provided, the script will print status updates once every 5,000 Gibbs updates.')
 	args = parser.parse_args()
@@ -231,9 +231,9 @@ class RandomVariableHyperNetwork(ag.RandomVariable):
     #we actually need the normalisation
         self.distribution = self.distribution/np.sum(self.distribution)
 
-def runGibbs(gene_id, genes, inp, gpprior, betaprior, args):
+def runGibbs(gene_id, inp, gpprior, betaprior, args):
 	#fish out the single gene via gene_id, also set the seeds via that
-	gene = genes[gene_id]
+	gene = args.genes[gene_id]
 	np.random.seed(gene_id)
 	#commence proper part of thing
 	print('Processing '+gene+'...')
@@ -269,16 +269,15 @@ def runGibbs(gene_id, genes, inp, gpprior, betaprior, args):
 		chain = None
 	return (out, chain, gene)
 
-def _pool_init(genes_, inp_, gpprior_, betaprior_, args_):
-	global genes, inp, gpprior, betaprior, args
-	genes = genes_
+def _pool_init(inp_, gpprior_, betaprior_, args_):
+	global inp, gpprior, betaprior, args
 	inp = inp_
 	gpprior = gpprior_
 	betaprior = betaprior_
 	args = args_
 
 def pool_runGibbs(gene_id):
-	return runGibbs(gene_id, genes, inp, gpprior, betaprior, args)
+	return runGibbs(gene_id, inp, gpprior, betaprior, args)
 
 def main():
 	#read arguments
@@ -327,7 +326,7 @@ def main():
 	chains = []
 	#"Parallelised or not, here I come!" - Gibbs sampler, 2016
 	if args.pool > 1:
-		p = mp.Pool(args.pool, _pool_init, (genes, inp, gpprior, betaprior, args))
+		p = mp.Pool(args.pool, _pool_init, (inp, gpprior, betaprior, args))
 		for (out, chain, gene) in p.imap_unordered(pool_runGibbs, np.arange(len(genes))):
 			#wrap it into a one-element list so that ismember sees it whole
 			mask = ismember(genes,[gene])
@@ -339,7 +338,7 @@ def main():
 				output[i][ind,1:] = np.asarray([str(x) for x in out[i,:]])
 	else:
 		for gene_id in genes:
-			(out, chain, gene) = runGibbs(gene_id, genes, inp, gpprior, betaprior, args)
+			(out, chain, gene) = runGibbs(gene_id, inp, gpprior, betaprior, args)
 			#wrap it into a one-element list so that ismember sees it whole
 			mask = ismember(genes,[gene])
 			ind = numtemp[mask][0]

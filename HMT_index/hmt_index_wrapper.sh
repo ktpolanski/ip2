@@ -15,9 +15,13 @@ set -e
 #start off by filtering the .gff3 to gene lines only
 grep -P '\tgene\t' $2 > genelines.gff3
 
+#strip the potential FASTA line breaks. creates genome_stripped.fa
+mv $1 genome.fa
+python3 /scripts/strip_newlines.py
+
 #create the .genome file
-samtools faidx $1
-cut -f 1-2 $1.fai > bedgenome.genome
+samtools faidx genome_stripped.fa
+cut -f 1-2 genome_stripped.fa.fai > bedgenome.genome
 
 #parse up the .bed for promoter extraction
 python3 /scripts/parse_genelines.py $3
@@ -29,7 +33,7 @@ if [ $9 == '--NoOverlap' ]
 		bedtools subtract -a promoters.bed -b genelines.bed > promoters2.bed
 		mv promoters2.bed promoters.bed
 fi
-bedtools getfasta -fi $1 -bed promoters.bed -s -fo promoters_rough.fa
+bedtools getfasta -fi genome_stripped.fa -bed promoters.bed -s -fo promoters_rough.fa
 #this results in some really crappy nomenclature for gene names
 #so let's make promoters.fa ourselves
 python3 /scripts/parse_promoters.py
