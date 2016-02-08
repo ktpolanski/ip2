@@ -8,7 +8,7 @@ import warnings
 import pickle
 
 import csi
-import AbstractGibbs as ag
+import AbstractGibbs_hCSI as ag
 from main import parse_gp_hyperparam_priors
 
 def loadData(fd):
@@ -46,190 +46,195 @@ def hamming(p1, p2):
 	return ulen-ilen
 
 def ismember(a, b):
-    #returns True for the positions of a that are in b and false otherwise
-    bind = {}
-    for i, elt in enumerate(b):
-        if elt not in bind:
-            bind[elt] = True
-    return np.asarray([bind.get(itm, False) for itm in a])
+	#returns True for the positions of a that are in b and false otherwise
+	bind = {}
+	for i, elt in enumerate(b):
+		if elt not in bind:
+			bind[elt] = True
+	return np.asarray([bind.get(itm, False) for itm in a])
+
+def roulette(dist):
+	#sample from dist, returning the index of the sampled position
+	dist2 = np.cumsum(dist)
+	return np.argmax(dist2 >= sp.rand(1))
 
 class GibbsHCSI(ag.AbstractGibbs):
-    def __init__(self, rvObjList, rvHyperNetwork):
-    #add a separate hypernetwork rv
-        self.rvl = rvObjList
-        self.indexList = range(len(self.rvl))
-        self.sampledValues = []
-        for i in self.indexList:
-            self.sampledValues.append([])
-        self.rvHyperNetwork = rvHyperNetwork
-        self.sampledValuesHyperNetwork = []
-    
-    def gibbsUpdate(self,iteration_number):
-    #expand the thing with hypernetwork sampling and parameter MCMC
-        #run through all the variables
-        valList = []
-        betaList = []
-        pset = self.rvHyperNetwork.getValRange()
-        for i in self.indexList:
-            #for each variable, build a distribution accross all possible values for that variable
-            #based on current values of other variable 
-            distribution = self.rvl[i].getConditionalDistribution(self.rvHyperNetwork.getCurrentValue())
-            #sample a random value based on the distribution
-            valInd = np.random.choice(np.arange(len(pset)),size=1,p=distribution)
-            self.rvl[i].setCurrentValue(pset[valInd[0]])
-            valList.append(pset[valInd[0]])
-            betaList.append(self.rvl[i].beta)
-        #sample the hypernetwork
-        distribution = self.rvHyperNetwork.getConditionalDistribution(valList,betaList)
-        valInd = np.random.choice(np.arange(len(pset)),size=1,p=distribution)
-        self.rvHyperNetwork.setCurrentValue(pset[valInd[0]])
-        #hyperparameter and temperature sampling
-        for i in self.indexList:
-            #sample the hyperparameters
-            old_hypers = self.rvl[i].em.hypers
-            new_hypers = sp.exp(sp.log(old_hypers)+self.rvl[i].thetaconst*sp.randn(3))
-            #set up the thetajumps and compute logliks
-            self.rvl[i].thetajump.setup([valList[i]])
-            self.rvl[i].thetajump.hypers = old_hypers
-            old_ll = self.rvl[i].thetajump.logliks()[0]
-            self.rvl[i].thetajump.hypers = new_hypers
-            new_ll = self.rvl[i].thetajump.logliks()[0]
-            #numeric thing before exping, scale to largest likelihood
-            (new_ll,old_ll) = (new_ll,old_ll)-np.max((new_ll,old_ll))
-            #compute P(hypers)
-            p_hypers_old = np.prod(sp.stats.gamma.pdf(old_hypers,a=self.rvl[i].em._prior_shape,scale=self.rvl[i].em._prior_scale))
-            p_hypers_new = np.prod(sp.stats.gamma.pdf(new_hypers,a=self.rvl[i].em._prior_shape,scale=self.rvl[i].em._prior_scale))
-            #transition probability
-            p_accept_theta = (sp.exp(new_ll) * p_hypers_new) / (sp.exp(old_ll) * p_hypers_old)
-            if np.random.uniform() <= p_accept_theta:
-                #we accept the new hypers
-                self.rvl[i].em.hypers = new_hypers
-                self.rvl[i].thetacount += 1
-            '''VISIBLE BREAK'''
-            #sample the beta (apparently Chris doesn't use the log space shift thing here)
-            old_beta = self.rvl[i].beta
-            new_beta = old_beta+self.rvl[i].betaconst*sp.randn()
-            #prepare the scaling constants
-            Z = np.zeros(len(self.rvl[i].em.pset))
-            for j in np.arange(len(self.rvl[i].em.pset)):
-                Z[j] = hamming(self.rvl[i].em.pset[j],self.rvHyperNetwork.currentValue)
-            const_old = np.sum(np.exp((-1)*old_beta*Z))
-            const_new = np.sum(np.exp((-1)*new_beta*Z))
-            #compute the probabilities
-            p_beta_old = sp.exp((-1)*old_beta*hamming(valList[i],self.rvHyperNetwork.currentValue))/const_old * sp.stats.gamma.pdf(old_beta,a=self.rvl[i].betaprior[0],scale=self.rvl[i].betaprior[1])
-            p_beta_new = sp.exp((-1)*new_beta*hamming(valList[i],self.rvHyperNetwork.currentValue))/const_new * sp.stats.gamma.pdf(new_beta,a=self.rvl[i].betaprior[0],scale=self.rvl[i].betaprior[1])
-            p_accept_beta = p_beta_new/p_beta_old
-            if np.random.uniform() <= p_accept_beta:
-                #we accept the new beta
-                self.rvl[i].beta = new_beta
-                self.rvl[i].betacount += 1
-            '''VISIBLE BREAK'''
-            #re-evaluate constants on 100 Gibbs goes
-            if iteration_number % 100 == 0:
-                #aim for 25 jumps on each parameter because stats and Chris said so
-                #too many jumps, too local, push it out of its comfort zone
-                if self.rvl[i].thetacount > 35:
-                    self.rvl[i].thetaconst *= 1.1
-                #too few jumps, hopping around the place too much, localise it a bit
-                elif self.rvl[i].thetacount < 15:
-                    self.rvl[i].thetaconst *= 0.9
-                if self.rvl[i].betacount > 35:
-                    self.rvl[i].betaconst *= 1.1
-                elif self.rvl[i].betacount < 15:
-                    self.rvl[i].betaconst *= 0.9
-                self.rvl[i].betacount = 0
-                self.rvl[i].thetacount = 0
+	def __init__(self, rvObjList, rvHyperNetwork):
+	#add a separate hypernetwork rv
+		self.rvl = rvObjList
+		self.indexList = range(len(self.rvl))
+		self.sampledValues = []
+		for i in self.indexList:
+			self.sampledValues.append([])
+		self.rvHyperNetwork = rvHyperNetwork
+		self.sampledValuesHyperNetwork = []
 
-    def sample(self, repeats=1, verbose=False):
-    #add hypernetwork sample storage
-        for i in range(repeats):
-            self.gibbsUpdate(i+1)
-            for j in self.indexList:
-                self.sampledValues[j].append(self.rvl[j].getCurrentValue())
-            self.sampledValuesHyperNetwork.append(self.rvHyperNetwork.getCurrentValue())
-            if (i+1) % 5000 == 0:
-                if verbose:
-                    print(str(i+1)+' iterations done.')
+	def gibbsUpdate(self,iteration_number):
+	#expand the thing with hypernetwork sampling and parameter MCMC
+		#run through all the variables
+		valList = []
+		betaList = []
+		pset = self.rvHyperNetwork.getValRange()
+		for i in self.indexList:
+			#for each variable, build a distribution accross all possible values for that variable
+			#based on current values of other variable 
+			distribution = self.rvl[i].getConditionalDistribution(self.rvHyperNetwork.getCurrentValue())
+			#sample a random value based on the distribution
+			valInd = roulette(distribution)
+			self.rvl[i].setCurrentValue(pset[valInd])
+			valList.append(pset[valInd])
+			betaList.append(self.rvl[i].beta)
+		#sample the hypernetwork
+		distribution = self.rvHyperNetwork.getConditionalDistribution(valList,betaList)
+		valInd = roulette(distribution)
+		self.rvHyperNetwork.setCurrentValue(pset[valInd])
+		#hyperparameter and temperature sampling
+		for i in self.indexList:
+			#sample the hyperparameters
+			old_hypers = self.rvl[i].em.hypers
+			new_hypers = sp.exp(sp.log(old_hypers)+self.rvl[i].thetaconst*sp.randn(3))
+			#set up the thetajumps (nohypers to not shift RNG chain) and compute logliks
+			self.rvl[i].thetajump.setup([valList[i]])
+			self.rvl[i].thetajump.hypers = old_hypers
+			old_ll = self.rvl[i].thetajump.logliks()[0]
+			self.rvl[i].thetajump.hypers = new_hypers
+			new_ll = self.rvl[i].thetajump.logliks()[0]
+			#numeric thing before exping, scale to largest likelihood
+			(new_ll,old_ll) = (new_ll,old_ll)-np.max((new_ll,old_ll))
+			#compute P(hypers)
+			p_hypers_old = np.prod(sp.stats.gamma.pdf(old_hypers,a=self.rvl[i].em._prior_shape,scale=self.rvl[i].em._prior_scale))
+			p_hypers_new = np.prod(sp.stats.gamma.pdf(new_hypers,a=self.rvl[i].em._prior_shape,scale=self.rvl[i].em._prior_scale))
+			#transition probability
+			p_accept_theta = (sp.exp(new_ll) * p_hypers_new) / (sp.exp(old_ll) * p_hypers_old)
+			if np.random.uniform() <= p_accept_theta:
+				#we accept the new hypers
+				self.rvl[i].em.hypers = new_hypers
+				self.rvl[i].thetacount += 1
+			'''VISIBLE BREAK'''
+			#sample the beta (apparently Chris doesn't use the log space shift thing here)
+			old_beta = self.rvl[i].beta
+			new_beta = old_beta+self.rvl[i].betaconst*sp.randn()
+			#prepare the scaling constants
+			Z = np.zeros(len(self.rvl[i].em.pset))
+			for j in np.arange(len(self.rvl[i].em.pset)):
+				Z[j] = hamming(self.rvl[i].em.pset[j],self.rvHyperNetwork.currentValue)
+			const_old = np.sum(np.exp((-1)*old_beta*Z))
+			const_new = np.sum(np.exp((-1)*new_beta*Z))
+			#compute the probabilities
+			p_beta_old = sp.exp((-1)*old_beta*hamming(valList[i],self.rvHyperNetwork.currentValue))/const_old * sp.stats.gamma.pdf(old_beta,a=self.rvl[i].betaprior[0],scale=self.rvl[i].betaprior[1])
+			p_beta_new = sp.exp((-1)*new_beta*hamming(valList[i],self.rvHyperNetwork.currentValue))/const_new * sp.stats.gamma.pdf(new_beta,a=self.rvl[i].betaprior[0],scale=self.rvl[i].betaprior[1])
+			p_accept_beta = p_beta_new/p_beta_old
+			if np.random.uniform() <= p_accept_beta:
+				#we accept the new beta
+				self.rvl[i].beta = new_beta
+				self.rvl[i].betacount += 1
+			'''VISIBLE BREAK'''
+			#re-evaluate constants on 100 Gibbs goes
+			if iteration_number % 100 == 0:
+				#aim for 25 jumps on each parameter because stats and Chris said so
+				#too many jumps, too local, push it out of its comfort zone
+				if self.rvl[i].thetacount > 35:
+					self.rvl[i].thetaconst *= 1.1
+				#too few jumps, hopping around the place too much, localise it a bit
+				elif self.rvl[i].thetacount < 15:
+					self.rvl[i].thetaconst *= 0.9
+				if self.rvl[i].betacount > 35:
+					self.rvl[i].betaconst *= 1.1
+				elif self.rvl[i].betacount < 15:
+					self.rvl[i].betaconst *= 0.9
+				self.rvl[i].betacount = 0
+				self.rvl[i].thetacount = 0
+
+	def sample(self, repeats=1, verbose=False):
+	#add hypernetwork sample storage
+		for i in range(repeats):
+			self.gibbsUpdate(i+1)
+			for j in self.indexList:
+				self.sampledValues[j].append(self.rvl[j].getCurrentValue())
+			self.sampledValuesHyperNetwork.append(self.rvHyperNetwork.getCurrentValue())
+			if (i+1) % 5000 == 0:
+				if verbose:
+					print(str(i+1)+' iterations done.')
 
 class RandomVariableCondition(ag.RandomVariable):
-    def __init__(self, csidata, cond, gene, gpprior, betaprior, depth, standardise):
-    #override init to include all sorts of CSI stuffs
-        #extract the data frame columns that actually have our condition's data
-        #(without killing the fine balance of the tuple indexing)
-        colNames = np.asarray([x[0] for x in csidata.columns.values])
-        numtemp = np.arange(len(colNames))
-        inp = csidata.iloc[:,numtemp[colNames==cond]]
-        #standardising
-        if standardise:
-            inp[:][:] = sp.stats.mstats.zscore(inp,axis=1,ddof=1)
-        #some processing stuff borrowed from the CSI code
-        assert (inp.columns.is_monotonic_increasing)
-        self.cc = csi.Csi(inp)
-        self.em = self.cc.getEm()
-        if gpprior:
-            self.em.set_priors(gpprior[0], gpprior[1])
-        #prepare the EM object
-        self.em.setup(self.cc.allParents(gene,depth))
-        #beta initialised at 0.1 as per Chris code (1 was his recommendation)
-        self.beta = 0.1
-        self.betaprior = betaprior
-        #MCMC constants (0.1 in code, 1 recommendation)
-        self.thetaconst = 0.1
-        self.betaconst = 0.1
-        self.thetacount = 0
-        self.betacount = 0
-        #random initialisation
-        ind = np.random.choice(np.arange(len(self.em.pset)),size=1)
-        self.currentValue = self.em.pset[ind]
-        self.valRange = self.em.pset
-        self.distribution = list(range(len(self.valRange)))
-        #thetajump setup, everything will be dealt with later
-        self.thetajump = self.cc.getEm()
-    
-    def getConditionalDistribution(self, hyperparent):
-    #override with actual computation
-        i = 0
-        logliks = self.em.logliks()
-        #turn logliks into actual numbers, scaled to the largest one
-        logliks = np.exp(logliks-np.max(logliks))
-        #for each possible value of the RV
-        for v in self.getValRange():
-            #skipping P(theta) and all the Z's as they're the same for each parent combo
-            p =  logliks[i] * np.exp((-1)*self.beta*hamming(v,hyperparent))
-            #set the distribution
-            self.distribution[i] = p
-            i = i + 1
-        self.normalizeDistribution()
-        return self.distribution
-    
-    def normalizeDistribution(self):
-    #we actually need the normalisation
-        self.distribution = self.distribution/np.sum(self.distribution)
+	def __init__(self, csidata, cond, gene, gpprior, betaprior, depth, standardise):
+	#override init to include all sorts of CSI stuffs
+		#extract the data frame columns that actually have our condition's data
+		#(without killing the fine balance of the tuple indexing)
+		colNames = np.asarray([x[0] for x in csidata.columns.values])
+		numtemp = np.arange(len(colNames))
+		inp = csidata.iloc[:,numtemp[colNames==cond]]
+		#standardising
+		if standardise:
+			inp[:][:] = sp.stats.mstats.zscore(inp,axis=1,ddof=1)
+		#some processing stuff borrowed from the CSI code
+		assert (inp.columns.is_monotonic_increasing)
+		self.cc = csi.Csi(inp)
+		self.em = self.cc.getEm()
+		if gpprior:
+			self.em.set_priors(gpprior[0], gpprior[1])
+		#prepare the EM object
+		self.em.setup(self.cc.allParents(gene,depth))
+		#beta initialised at 0.1 as per Chris code (1 was his recommendation)
+		self.beta = 0.1
+		self.betaprior = betaprior
+		#MCMC constants (0.1 in code, 1 recommendation)
+		self.thetaconst = 0.1
+		self.betaconst = 0.1
+		self.thetacount = 0
+		self.betacount = 0
+		#random initialisation
+		ind = roulette(np.ones(len(self.em.pset))/len(self.em.pset))
+		self.currentValue = self.em.pset[ind]
+		self.valRange = self.em.pset
+		self.distribution = list(range(len(self.valRange)))
+		#thetajump setup, everything will be dealt with later
+		self.thetajump = self.cc.getEm()
+
+	def getConditionalDistribution(self, hyperparent):
+	#override with actual computation
+		i = 0
+		logliks = self.em.logliks()
+		#turn logliks into actual numbers, scaled to the largest one
+		logliks = np.exp(logliks-np.max(logliks))
+		#for each possible value of the RV
+		for v in self.getValRange():
+			#skipping P(theta) and all the Z's as they're the same for each parent combo
+			p =  logliks[i] * np.exp((-1)*self.beta*hamming(v,hyperparent))
+			#set the distribution
+			self.distribution[i] = p
+			i = i + 1
+		self.normalizeDistribution()
+		return self.distribution
+
+	def normalizeDistribution(self):
+	#we actually need the normalisation
+		self.distribution = self.distribution/np.sum(self.distribution)
 
 class RandomVariableHyperNetwork(ag.RandomVariable):
-    def __init__(self, csidata, gene, depth):
-    #override init to include all sorts of CSI stuffs
-	    cc = csi.Csi(csidata)
-	    self.valRange = cc.allParents(gene,depth)
-	    ind = np.random.choice(np.arange(len(self.valRange)),size=1)
-	    self.currentValue = self.valRange[ind]
-	    self.distribution = list(range(len(self.valRange)))
-    
-    def getConditionalDistribution(self, condParents, betas):
-    #override with actual computation
-        i = 0
-        for v in self.getValRange():
-            p = 1
-            for (j, cond) in enumerate(condParents):
-                p = p * np.exp((-1)*betas[j]*hamming(v,cond))
-            self.distribution[i] = p
-            i = i + 1
-        self.normalizeDistribution()
-        return self.distribution
+	def __init__(self, csidata, gene, depth):
+	#override init to include all sorts of CSI stuffs
+		cc = csi.Csi(csidata)
+		self.valRange = cc.allParents(gene,depth)
+		ind = roulette(np.ones(len(self.valRange))/len(self.valRange))
+		self.currentValue = self.valRange[ind]
+		self.distribution = list(range(len(self.valRange)))
 
-    def normalizeDistribution(self):
-    #we actually need the normalisation
-        self.distribution = self.distribution/np.sum(self.distribution)
+	def getConditionalDistribution(self, condParents, betas):
+	#override with actual computation
+		i = 0
+		for v in self.getValRange():
+			p = 1
+			for (j, cond) in enumerate(condParents):
+				p = p * np.exp((-1)*betas[j]*hamming(v,cond))
+			self.distribution[i] = p
+			i = i + 1
+		self.normalizeDistribution()
+		return self.distribution
+
+	def normalizeDistribution(self):
+	#we actually need the normalisation
+		self.distribution = self.distribution/np.sum(self.distribution)
 
 def runGibbs(gene_id, inp, gpprior, betaprior, args):
 	#fish out the single gene via gene_id, also set the seeds via that
@@ -264,7 +269,7 @@ def runGibbs(gene_id, inp, gpprior, betaprior, args):
 	#potential chain storing
 	if args.pickle:
 		chain = gibbs.sampledValues
-		chain.append([gibbs.sampledValuesHyperNetwork])
+		chain.append(gibbs.sampledValuesHyperNetwork)
 	else:
 		chain = None
 	return (out, chain, gene)
