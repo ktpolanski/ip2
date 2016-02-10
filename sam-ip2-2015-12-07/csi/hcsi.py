@@ -177,6 +177,8 @@ class RandomVariableCondition(ag.RandomVariable):
 		if gpprior:
 			self.em.set_priors(gpprior[0], gpprior[1])
 		#prepare the EM object
+		#placebo disabling of weight sampling
+		self.em.sampleinitweights = False
 		self.em.setup(self.cc.allParents(gene,depth))
 		#beta initialised at 0.1 as per Chris code (1 was his recommendation)
 		self.beta = 0.1
@@ -191,8 +193,9 @@ class RandomVariableCondition(ag.RandomVariable):
 		self.currentValue = self.em.pset[ind]
 		self.valRange = self.em.pset
 		self.distribution = list(range(len(self.valRange)))
-		#thetajump setup, everything will be dealt with later
+		#thetajump setup, everything will be dealt with later (but do the placebo thing)
 		self.thetajump = self.cc.getEm()
+		self.thetajump.sampleinitweights = False
 
 	def getConditionalDistribution(self, hyperparent):
 	#override with actual computation
