@@ -171,6 +171,8 @@ class RandomVariableCondition(ag.RandomVariable):
 		assert (inp.columns.is_monotonic_increasing)
 		self.cc = csi.Csi(inp)
 		self.em = self.cc.getEm()
+		#override exp(N(0,1)) hypers with U(0,1) hypers
+		self.em.hypers = sp.rand(3)
 		if gpprior:
 			self.em.set_priors(gpprior[0], gpprior[1])
 		#prepare the EM object

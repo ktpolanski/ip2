@@ -181,8 +181,7 @@ class CsiEm(object):
         self.Y = csi.Y
         self.pset = []
         self.weighttrunc = 1e-5
-        #TWEAK - was true
-        self.sampleinitweights = False
+        self.sampleinitweights = True
         self._prior_shape = None
         self._prior_scale = None
 
@@ -226,9 +225,7 @@ class CsiEm(object):
             w = np.ones(len(pset)) / len(pset)
 
         self.pset = pset
-        #tweak to match to Matlab
-        self.hypers = sp.rand(3)
-        #self.hypers = sp.exp(sp.randn(3))
+        self.hypers = sp.exp(sp.randn(3))
         self.weights = w
         self.tol = 0.1
 
