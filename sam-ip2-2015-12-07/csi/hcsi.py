@@ -25,6 +25,7 @@ def parse_args():
 	parser.add_argument('--Depth', dest='depth', type=int, default=2, help='CSI parental set depth truncation to maintain computational tractability. Default: 2')
 	parser.add_argument('--Prior', dest='gpprior', type=str, default='10,0.1', help='CSI Gaussian Process prior, provided as \'shape,scale\' for a gamma distribution or \'uniform\' for a uniform distribution. Default: \'10,0.1\'')
 	parser.add_argument('--BetaPrior', dest='betaprior', type=str, default='1,1', help='hCSI temperature prior, provided as \'shape,scale\' for a gamma distribution. Default: \'1,1\'')
+	parser.add_argument('--SeedOffset', dest='offset', type=int, default=0, help='Shift the seeding (based on child gene row number in the CSV) by a fixed amount to get (slightly) different run results. Default: 0 (no offset)')
 	parser.add_argument('--NoStandardising', dest='standardise', action='store_false', help='Flag. If provided, the data will not be standardised on a per-gene, per-condition basis.')
 	parser.add_argument('--Genes', dest='genes', default=None, nargs='+', help='Child gene set to evaluate, if you wish to only run hCSI on a subset of the available gene space. Provide as space delimited names matching the CSV file. Default: None (analyse the whole dataset)')
 	parser.add_argument('--Pool', dest='pool', type=int, default=1, help='Number of threads to open up for parallelising hCSI on a per-gene basis. Default: 1 (no parallelising)')
@@ -241,7 +242,7 @@ class RandomVariableHyperNetwork(ag.RandomVariable):
 def runGibbs(gene_id, inp, gpprior, betaprior, args):
 	#fish out the single gene via gene_id, also set the seeds via that
 	gene = args.genes[gene_id]
-	np.random.seed(gene_id)
+	np.random.seed(gene_id+args.offset)
 	#commence proper part of thing
 	print('Processing '+gene+'...')
 	hnrv = RandomVariableHyperNetwork(inp,gene,args.depth)
