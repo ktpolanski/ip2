@@ -60,7 +60,7 @@ In order to avoid using the same exact random numbers for sampling when analysin
 
 ### Process Count
 
-**Obligatory input.** hCSI is parallelised to help decrease run time, and as a high performance computing algorithm has access to more resources than a typical iPlant node. As such, the user is allowed to control the number of processes to best reflect their job's needs. Don't set this higher than the number of genes in the dataset, as then the allocated resources won't be used to their fullest potential. It's fine to set this to less than the number of genes in the dataset as well, the hCSI job pieces genes will just form a queue and take longer to run.
+**Obligatory input.** hCSI is parallelised to help decrease run time, and as a high performance computing algorithm has access to more resources than a typical iPlant node. As such, the user is allowed to control the number of processes to best reflect their job's needs. Don't set this higher than the number of genes in the dataset, as then the allocated resources won't be used to their fullest potential. It's fine to set this to less than the number of genes in the dataset as well, the hCSI job pieces for individual genes will just form a queue and take longer to run.
 
 ### Sample Count
 
