@@ -14,11 +14,29 @@ hCSI takes CSI as a base and creates an individual CSI fit for each perturbation
 
 This section describes the exact details of the implementation, going into more technical detail than the algorithm outline in [Penfold et al., 2012][penfold2012]. It is not necessary for using the iPlant app, but it is here to document the implementation in greater depth.
 
-The model is initialised completely randomly. Each perturbation has a random parental set combination assigned to it as the starting value with no weighting, and the same happens for the hypernetwork. The Gaussian process hyperparameters are sampled from U(0,1) for each dataset independently (in contrast to the original Matlab implementation, where one set of U(0,1) sampled values are copied over for each dataset as the starting hyperparameters), all of the temperatures are initialised at 0.1.
+The model is initialised completely randomly. Each perturbation has a random parental set combination assigned to it as the starting value with equal weighting, and the same happens for the hypernetwork. The starting Gaussian process hyperparameters are sampled from U(0,1) for each dataset independently (in contrast to the original Matlab implementation, where a single set of sampled values are copied over for each dataset as the starting hyperparameters), all of the temperatures are initialised at 0.1.
 
-In contrast to the original Matlab implementation, all four sampling procedures (individual networks, hypernetwork, hyperparameters, temperatures) are performed in tandem, with a total of 25,000 steps. In Matlab, one of those operations was chosen randomly as a single step, with 100,000 total steps.
+In contrast to the original Matlab implementation, all four sampling procedures (individual networks, hypernetwork, hyperparameters, temperatures) are performed in tandem, with a default total of 25,000 steps. In Matlab, one of those operations was chosen randomly as a single step, with 100,000 default total steps.
 
-The hyperparameter and temperature sampling steps feature the addition of a random Gaussian variable to each of the values, which is sampled from N(0,1) and multiplied by a scaling constant. The scaling constant is initialised at 0.1 and re-evaluated every 100 steps, aiming to keep the Metropolis-Hastings acceptance rate at around 0.25. In the case of less than 15 accepted jumps (out of 100), the transition operator is deemed to be not localised enough and the scaling constant is multiplied by 0.9. If over 35 jumps get accepted, the scaling constant is multiplied by 1.1 to make the sampling be less localised. This, as well as the actual sampling of the hyperparameter/temperature values, is performed independently for hyperparameters and temperatures and each dataset.
+The hyperparameter and temperature sampling steps feature the addition of a random Gaussian variable, which is sampled from N(0,1) and multiplied by a scaling constant. The scaling constant is initialised at 0.1 and re-evaluated every 100 steps, aiming to keep the Metropolis-Hastings acceptance rate at around 0.25. In the case of less than 15 accepted jumps (out of 100), the transition operator is deemed to be not localised enough and the scaling constant is multiplied by 0.9. If over 35 jumps get accepted, the scaling constant is multiplied by 1.1 to make the sampling be less localised. This, as well as the actual sampling of the hyperparameter/temperature values, is performed independently for hyperparameters and temperatures and each dataset.
+
+## Test Run
+
+If you want to take hCSI out for a spin without using your own data, this can be done with the aid of one of the 10-gene synthetic networks originally used in the CSI and hCSI publications. The dataset to be used on input can be found at `ktpolanski/hcsi_testdata/dream4_5.csv` under Community Data. Leave all the parameter values as defaults, except for the process count, which you should set to 10. hCSI is computationally intensive and it may take upwards of an hour for this analysis to be complete.
+
+## Inputs
+
+### Gene Expression CSV
+
+**The only obligatory file you have to provide.** Comma-delimited file, with expression data ordered to have genes as rows and time points as columns. In terms of headers, the first column should contain gene IDs, the first row should contain condition names (repeated for each time point part of the condition), and the second row should contain the corresponding time of the time point in that condition. For reference on formatting, consult `ktpolanski/hcsi_testdata/dream4_5.csv` under Community Data.
+
+**NOTE: hCSI is extremely computationally intensive.** It is greatly recommended to perform a high degree of preliminary analysis and select the most relevant subset of candidate genes to perform hCSI on. Going above 30 genes is really not recommended.
+
+### Parental Set Depth
+
+**Default:** 2
+
+When evaluating parental set combinations, a limitation is put on up to how many parents to sample from the parent pool to create the combinations. As this depth is increased, the number of parental sets to evaluate drastically goes up, making the problem less computationally tractable. ***Increasing this value from 2 is not recommended**, especially if the dataset is larger than the test data provided.
 
 [penfold2011]: http://rsfs.royalsocietypublishing.org/content/1/6/857.short
 [penfold2012]: http://bioinformatics.oxfordjournals.org/content/28/12/i233.short
