@@ -38,7 +38,7 @@ If you want to take hCSI out for a spin without using your own data, this can be
 
 **Default:** 2
 
-When evaluating parental set combinations, a limitation is put on up to how many parents to sample from the parent pool to create the combinations. As this depth is increased, the number of parental sets to evaluate drastically goes up, making the problem less computationally tractable. Increasing this value above 2 is not recommended, especially if the dataset is larger than the test data provided. At the same time, lowering this value to 1 will result in uninformative analysis results.
+When evaluating parental set combinations, a limitation is put on up to how many parents to sample from the parent pool to create the combinations. As this depth is increased, the number of parental sets to evaluate drastically goes up, making the problem less computationally tractable. Increasing this value above 2 is not recommended, especially if the dataset is larger than the test data provided. At the same time, lowering this value to 1 will result in uninformative analysis results, missing out on a lot of combinatorial regulatory action.
 
 ### Gaussian Process Prior
 
@@ -60,7 +60,7 @@ In order to avoid using the same exact random numbers for sampling when analysin
 
 ### Process Count
 
-**Obligatory input.** hCSI is parallelised to help decrease run time, and as a high performance computing algorithm has access to more resources than a typical iPlant node. As such, the user is allowed to control the number of processes to best reflect their job's needs. Don't set this higher than the number of genes in the dataset, as then the allocated resources won't be used to their fullest potential. It's fine to set this to less than the number of genes in the dataset as well, the genes will just "line up" then.
+**Obligatory input.** hCSI is parallelised to help decrease run time, and as a high performance computing algorithm has access to more resources than a typical iPlant node. As such, the user is allowed to control the number of processes to best reflect their job's needs. Don't set this higher than the number of genes in the dataset, as then the allocated resources won't be used to their fullest potential. It's fine to set this to less than the number of genes in the dataset as well, the hCSI job pieces genes will just form a queue and take longer to run.
 
 ### Sample Count
 
