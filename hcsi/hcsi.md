@@ -82,5 +82,15 @@ CSI fits are calibrated to normally distributed expression data with zero mean a
 
 Samplers have their limits, and sometimes it's possible for them to get stuck in local optima wich may not actually be the best solution. Checking this box will produce a Python Pickle of the value chains of the individual networks and hypernetwork for possible diagnostic aid. The Pickled variable will be a list of lists, with a single item of the master list corresponding to an individual gene. These may be out of order relative to the input, as hCSI is parallelised for efficiency. An individual gene's list entry will in turn be a list of N+1 lists, where N is the number of conditions in the input file. The N+1 lists will be the conditions, sorted alphabetically, and the hypernetwork. Those lists will in turn feature all the parental set values with burn-in discarded. At this point it is possible to distinguish which gene the list of values is for, as it will always be the second element in the individual element tuple (with the first element being a list of parents). Storing the chains is not essential for every run, and will take up roughly 2-3 MB of space per gene in the dataset.
 
+## Output
+
+### `hcsi-XXXXX.csv`
+
+One of these files will be generated per condition in the input dataset. This is the regulatory network model, with parents as columns and children as rows, and each edge given a probability score (the higher the better). Introduce a threshold to turn this into a standard, binary network.
+
+### `hcsi-hypernetwork.csv`
+
+Exactly the same formatting as the individual condition files, features information on the identified hypernetwork. This might be of some use, so including it in the output - in the case of the 10-gene synthetic network provided as test data, the hypernetwork does a better job of reproducing the true network than any of the five individual models.
+
 [penfold2011]: http://rsfs.royalsocietypublishing.org/content/1/6/857.short
 [penfold2012]: http://bioinformatics.oxfordjournals.org/content/28/12/i233.short
