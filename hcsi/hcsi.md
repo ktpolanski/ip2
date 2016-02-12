@@ -1,0 +1,9 @@
+# hCSI
+
+## The Purpose of the Algorithm
+
+hCSI (hierarchical Causal Structure Inference) is an algorithm designed for inferring regulatory network models from time course datasets showing the same organism responding to different perturbations. The underlying assumption is that the response across the conditions may show some degree of similarity, with elements of a common, shared regulatory network (referred to as a hypernetwork) in use during the individual responses. The distinctness of the stimuli is tuned during the hCSI run, with data for conditions deemed dissimilar having less impact on the hypernetwork and, by extension, other conditions. The algorithm produces network models for each stimulus, as well as an estimate of the hypernetwork.
+
+## How Does It Work?
+
+The basis for hCSI is CSI (Causal Structure Inference), a network inference algorithm designed to propose a regulatory network model for a single time course dataset. CSI operates unter the premise that when a particular parent gene regulates a target (child) gene, then the child's expression profile can be explained by the parent's expression profile at the preceding time point (giving the parent gene time to get its protein to the child gene's promoter and affect its expression). This is formally done by fitting a Gaussian process to a visualisation of the data where one axis is made up of the child's expression and the other axes are time shifted parents. CSI infers parents on a per-child basis, with all eligible parent combinations (up to a specified maximum number of parents) evaluated, and probabilities of each parental set being "the correct one"
