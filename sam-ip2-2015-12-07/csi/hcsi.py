@@ -12,6 +12,12 @@ import AbstractGibbs_hCSI as ag
 from main import parse_gp_hyperparam_priors
 
 def loadData(fd):
+	'''
+	Import a CSI-formatted CSV file. Based on Sam's loadData() from his CSI implementation.
+	
+	Input:
+		* fd - argparse-generated file handle for the CSV file
+	'''
 	# read in data and make sure headers are correct
 	inp = pd.read_csv(fd,dtype=str,index_col=0,header=[0,1])
 	inp.columns = pd.MultiIndex.from_tuples([(a,float(b)) for a,b in inp.columns],names=inp.columns.names)
@@ -19,7 +25,9 @@ def loadData(fd):
 	return inp.astype(float)
 
 def parse_args():
-	#the obligatory argument parsing
+	'''
+	Parse the command line arguments provided and return an args structure with them inside.
+	'''
 	parser = argparse.ArgumentParser()
 	parser.add_argument('--Input', dest='input', type=argparse.FileType('r'), required=True, help='The CSV file featuring your expression data. First column for gene names, first row for condition names repeated for each condition time point, second row for condition time point information.')
 	parser.add_argument('--Depth', dest='depth', type=int, default=2, help='CSI parental set depth truncation to maintain computational tractability. Default: 2')
@@ -37,6 +45,12 @@ def parse_args():
 	return args
 
 def hamming(p1, p2):
+	'''
+	Compute the Hamming distance between two parental sets.
+	
+	Input:
+		* p1, p2 - the two parental sets, standard tuple formatting, i.e. ([parents], child)
+	'''
 	#filter out to what we actually want from the parents
 	p1_set = set(p1[0])
 	p2_set = set(p2[0])
@@ -47,7 +61,12 @@ def hamming(p1, p2):
 	return ulen-ilen
 
 def ismember(a, b):
-	#returns True for the positions of a that are in b and false otherwise
+	'''
+	Functional clone of Matlab's ismember(), returning a Boolean mask indicating which elements of a are in b.
+	
+	Input:
+		* a, b - the two lists to be compared. Need to be lists, even if a or b are single elements.
+	'''
 	bind = {}
 	for i, elt in enumerate(b):
 		if elt not in bind:
@@ -55,7 +74,12 @@ def ismember(a, b):
 	return np.asarray([bind.get(itm, False) for itm in a])
 
 def roulette(dist):
-	#sample from dist, returning the index of the sampled position
+	'''
+	Roulette wheel sampling algorithm from a distribution. Returns the index of the sampled position.
+	
+	Input:
+		* dist - the pdf of the distribution to be sampled from, ensure it adds up to 1
+	'''
 	dist2 = np.cumsum(dist)
 	return np.argmax(dist2 >= sp.rand(1))
 
@@ -242,6 +266,16 @@ class RandomVariableHyperNetwork(ag.RandomVariable):
 		self.distribution = self.distribution/np.sum(self.distribution)
 
 def runGibbs(gene_id, inp, gpprior, betaprior, args):
+	'''
+	Perform a complete hCSI run for a given child gene, returning the relevant rows of the marginal matrix.
+	
+	Input:
+		* gene_id - which row of the input CSV is the child to be analysed, used for seed setting and data access
+		* inp - the parsed CSV expression file as a Pandas data frame
+		* gpprior - [shape, scale] information on the gamma prior for the CSI Gaussian process hyperparameters
+		* betaprior - [shape, scale] information on the gamma prior for the temperature parameters
+		* args - the parsed command line arguments
+	'''
 	#fish out the single gene via gene_id, also set the seeds via that
 	gene = args.genes[gene_id]
 	np.random.seed(gene_id+args.offset)
@@ -280,6 +314,9 @@ def runGibbs(gene_id, inp, gpprior, betaprior, args):
 	return (out, chain, gene)
 
 def _pool_init(inp_, gpprior_, betaprior_, args_):
+	'''
+	Helper function to set up the "global" variables for the per-gene parallelised pool
+	'''
 	global inp, gpprior, betaprior, args
 	inp = inp_
 	gpprior = gpprior_
@@ -287,6 +324,12 @@ def _pool_init(inp_, gpprior_, betaprior_, args_):
 	args = args_
 
 def pool_runGibbs(gene_id):
+	'''
+	Helper function calling runGibbs() using the "global" variables made by _pool_init
+	
+	Input:
+		* gene_id - which row of the input CSV is the current child, the only variable part of the input
+	'''
 	return runGibbs(gene_id, inp, gpprior, betaprior, args)
 
 def main():
@@ -328,7 +371,7 @@ def main():
 	output = []
 	for i in range(len(conditions)+1):
 		template = np.ndarray((len(genes)+1,len(genes)+1),dtype=object)
-		template[0,0] = 'ID'
+		template[0,0] = ''
 		template[1:,0] = np.asarray(genes)
 		template[0,1:] = np.asarray(genes)
 		output.append(template)
