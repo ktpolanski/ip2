@@ -1,0 +1,21 @@
+\begin{thebibliography}{2}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Penfold et~al.(2012)Penfold, Buchanan-Wollaston, Denby, and
+  Wild]{penfold2012}
+Penfold, C.~A., Buchanan-Wollaston, V., Denby, K.~J., and Wild, D.~L.
+\newblock {Nonparametric Bayesian inference for perturbed and orthologous gene
+  regulatory networks}.
+\newblock \emph{Bioinformatics}, 28\penalty0 (12):\penalty0 i233--i241, 2012.
+
+\bibitem[Rasmussen and Williams(2005)]{rasmussen2006}
+Rasmussen, C.~E. and Williams, C. K.~I.
+\newblock \emph{Gaussian Processes for Machine Learning}.
+\newblock The MIT Press, 2005.
+\newblock ISBN 0-262-18253-X.
+
+\end{thebibliography}

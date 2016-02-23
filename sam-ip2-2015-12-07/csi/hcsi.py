@@ -37,6 +37,7 @@ def parse_args():
 	parser.add_argument('--NoStandardising', dest='standardise', action='store_false', help='Flag. If provided, the data will not be standardised on a per-gene, per-condition basis.')
 	parser.add_argument('--Genes', dest='genes', default=None, nargs='+', help='Child gene set to evaluate, if you wish to only run hCSI on a subset of the available gene space. Provide as space delimited names matching the CSV file. Default: None (analyse the whole dataset)')
 	parser.add_argument('--Pool', dest='pool', type=int, default=1, help='Number of threads to open up for parallelising hCSI on a per-gene basis. Default: 1 (no parallelising)')
+	parser.add_argument('--LikelihoodPool', dest='likpool', default=None, type=int, help='Likelihood computation is the most resource-intensive part of hCSI. This option allows an additional level of parallelisation in likelihood computation, to speed up run times on resource-heavy local computational platforms. Default: None (no additional parallelisation level)')
 	parser.add_argument('--Samples', dest='samples', type=int, default=25000, help='Number of Gibbs updates to perform within hCSI. Default: 25,000')
 	parser.add_argument('--BurnIn', dest='burnin', type=int, default=2500, help='Number of initial Gibbs updates to discard as burn-in. Default: 2,500')
 	parser.add_argument('--Pickle', dest='pickle', action='store_true', help='Flag. If provided, the obtained Gibbs value chains for individual models and the hypernetwork are stored as a Python Pickle. Refer to readme for more in depth formatting information.')
@@ -202,7 +203,7 @@ class RandomVariableCondition(ag.RandomVariable):
 			self.em.set_priors(gpprior[0], gpprior[1])
 		#prepare the EM object
 		self.em.sampleinitweights = False
-		self.em.setup(self.cc.allParents(gene,depth))
+		self.em.setup(self.cc.allParents(gene,depth),args.likpool)
 		#beta initialised at 0.1 as per Chris code (1 was his recommendation)
 		self.beta = 0.1
 		self.betaprior = betaprior
