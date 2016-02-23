@@ -28,7 +28,7 @@ parser.add_argument('-fw', default = 1,  type = int, help = 'Ocsi framework 1 or
 parser.add_argument('-l',  required = True, \
                         help = 'Labels for genes, in the order that they apper in CSI output files');
 parser.add_argument('-br', default = 100, type = int, help = 'Burnin');
-parser.add_argument('-d', default = 2, type = int, help = 'Size of parental set of hyper network (must be consistent with CSI)');
+parser.add_argument('-d', default = 2, help = 'Size of parental set of hyper network (must be consistent with CSI)');
 parser.add_argument('-fn', help = 'A file containing network topology (incident list) of species with known network topology');
 parser.add_argument('-g',default = 1000, type = int, help = 'Number of steps for Gibbs sampling');
 parser.add_argument('-o', default = 'out', help = 'Output files\' name prefix for OCSI');

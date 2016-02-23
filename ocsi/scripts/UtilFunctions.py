@@ -2,7 +2,6 @@ from Network import GRNetwork;
 import numpy as np;
 from OCSIUtilities import discreteSample as mysample;
 from itertools import combinations as combinations;
-from itertools import chain as chain;
 import pdb;
 #build keys of the form #Species#GeneID[#ParentID1#ParentID2...]
 def buildKey(species, gid, pas):
@@ -76,8 +75,8 @@ class HyperNetworkFactory:
     def buildPaStore(self):
         for i in range(len(self.nodes)):
             indices = [];
-            for d in np.arange(self.depth + 1):
-                indices += combinations(chain(range(i),range(i+1,len(self.nodes))), d);
+            for d in range(self.depth + 1):
+                indices += combinations(range(i)+range(i+1,len(self.nodes)), d);
             self.paStore[i] = [ [self.nodes[ii] for ii in pasetInd] for pasetInd in indices ];
     def buildPaDistribution(self, index):
         dist1 = [];
