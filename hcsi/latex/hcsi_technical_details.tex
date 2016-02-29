@@ -3,6 +3,11 @@
 \usepackage{amsmath,amsfonts,hyperref}
 \usepackage[round]{natbib}
 
+\let\originalleft\left
+\let\originalright\right
+\renewcommand{\left}{\mathopen{}\mathclose\bgroup\originalleft}
+\renewcommand{\right}{\aftergroup\egroup\originalright}
+
 \title{hCSI - Implementation Information}
 \date{}
 
@@ -16,31 +21,31 @@ This supplementary readme describes the exact details of the Python hCSI impleme
 
 This subsection is largely redundant with the information in \citet{penfold2012}, but is here to provide the exact forms of the sampling formulas that are used in the implementation.
 
-Given $d$ datasets $D = \left \{ D^1,...,D^d \right \}$, a set of Gaussian process hyperparameters $\Theta = \left \{ \theta^1,...,\theta^d \right \}$ and temperature parameters $\beta = \left \{ \beta^1,...,\beta^d \right \}$, the joint distribution can be written as
+Given $d$ datasets $D = \left\{ D^1,...,D^d \right\}$, a set of Gaussian process hyperparameters $\Theta = \left\{ \theta^1,...,\theta^d \right\}$ and temperature parameters $\beta = \left\{ \beta^1,...,\beta^d \right\}$, the joint distribution can be written as
 
 \begin{equation}
 \label{dist}
 \begin{split}
-\mathbb{P}(Pa^1(i),...,Pa^d(i),Pa^*(i),\Theta,\beta|D) = \mathbb{P}(\Theta )\mathbb{P}(\beta )\mathbb{P}(Pa^*(i))\times \\
-\prod_{j=1}^{d}\mathbb{P}(D^j|Pa^j(i),\theta ^j)\mathbb{P}(Pa^j(i)|Pa^*(i),\beta ^j)
+\mathbb{P}\left(Pa^1\left(i\right),...,Pa^d\left(i\right),Pa^*\left(i\right),\Theta,\beta|D\right) = \mathbb{P}\left(\Theta \right)\mathbb{P}\left(\beta \right)\mathbb{P}\left(Pa^*\left(i\right)\right)\times \\
+\prod_{j=1}^{d}\mathbb{P}\left(D^j|Pa^j\left(i\right),\theta ^j\right)\mathbb{P}\left(Pa^j\left(i\right)|Pa^*\left(i\right),\beta ^j\right)
 \end{split}
 \end{equation}
 
-with $Pa^j(i)$ being the parents of gene $i$ in dataset $j$ and $Pa^*(i)$ being the parents of gene $i$ in the hypernetwork. The priors $\mathbb{P}(\Theta)$ and $\mathbb{P}(\beta)$ are gamma-distributed, while $\mathbb{P}(Pa^*(i))$ is uniform across all possible parental sets. We have
+with $Pa^j\left(i\right)$ being the parents of gene $i$ in dataset $j$ and $Pa^*\left(i\right)$ being the parents of gene $i$ in the hypernetwork. The priors $\mathbb{P}\left(\Theta\right)$ and $\mathbb{P}\left(\beta\right)$ are gamma-distributed, while $\mathbb{P}\left(Pa^*\left(i\right)\right)$ is uniform across all possible parental sets. We have
 
 \begin{equation*}
-\mathbb{P}(D^j|Pa^j(i),\theta^j) = \frac{1}{Z}\mathbb{P}(\mathbf{y}^j|\mathbf{X}^j,Pa^j(i),\theta^j)
+\mathbb{P}\left(D^j|Pa^j\left(i\right),\theta^j\right) = \frac{1}{Z}\mathbb{P}\left(\mathbf{y}^j|\mathbf{X}^j,Pa^j\left(i\right),\theta^j\right)
 \end{equation*}
 
-where $\mathbb{P}(\mathbf{y}^j|\mathbf{X}^j,Pa^j(i),\theta^j)$ is the marginal likelihood of a zero-mean, squared exponential covariance Gaussian process model with input $\mathbf{X}^j$ (the time shifted expression of the parent genes) and output $\mathbf{y}^j$ (the expression of the child gene) \citep{rasmussen2006}. $Z$ is a normalising constant. We also have
+where $\mathbb{P}\left(\mathbf{y}^j|\mathbf{X}^j,Pa^j\left(i\right),\theta^j\right)$ is the marginal likelihood of a zero-mean, squared exponential covariance Gaussian process model with input $\mathbf{X}^j$ (the time shifted expression of the parent genes) and output $\mathbf{y}^j$ (the expression of the child gene) \citep{rasmussen2006}. $Z$ is a normalising constant. We also have
 
 \begin{equation*}
-\mathbb{P}(Pa^j|Pa^*(i),\beta^j)) = \frac{1}{Z}\exp\left ( -\beta^j\mathcal{E}(Pa^j(i),Pa^*(i)) \right )
+\mathbb{P}\left(Pa^j|Pa^*\left(i\right),\beta^j\right) = \frac{1}{Z}\exp\left( -\beta^j\mathcal{E}\left(Pa^j\left(i\right),Pa^*\left(i\right)\right) \right)
 \end{equation*}
 
-with $\mathcal{E}(Pa^j(i),Pa^*(i))$ representing the Hamming distance between $Pa^j(i)$ and $Pa^*(i)$ -- treating the parental gene sets as actual sets, the Hamming distance between them is the size of the union minus the size of the intersection between them. Once again, $Z$ is a normalising constant.
+with $\mathcal{E}\left(Pa^j\left(i\right),Pa^*\left(i\right)\right)$ representing the Hamming distance between $Pa^j\left(i\right)$ and $Pa^*\left(i\right)$ -- treating the parental gene sets as actual sets, the Hamming distance between them is the size of the union minus the size of the intersection between them. Once again, $Z$ is a normalising constant.
 
-All sampling performed in hCSI is based on Equation \ref{dist}, with most of the terms in the product remaining unchanged for any individual sampling. For example, proposing a new parental set in a single dataset $j$ will only see $\mathbb{P}(D^j|Pa^j(i),\theta ^j)\mathbb{P}(Pa^j(i)|Pa^*(i),\beta ^j)$ for that particular $j$ change, with all the other components of the product staying the same.
+All sampling performed in hCSI is based on Equation \ref{dist}, with most of the terms in the product remaining unchanged for any individual sampling. For example, proposing a new parental set in a single dataset $j$ will only see $\mathbb{P}\left(D^j|Pa^j\left(i\right),\theta ^j\right)\mathbb{P}\left(Pa^j\left(i\right)|Pa^*\left(i\right),\beta ^j\right)$ for that particular $j$ change, with all the other components of the product staying the same.
 
 The four sampling steps performed as part of hCSI are:
 
@@ -48,29 +53,29 @@ The four sampling steps performed as part of hCSI are:
 \item Gibbs updates of the parental sets in each of the $d$ datasets
 \begin{equation*}
 \begin{split}
-Pa^1(i) \sim \frac{1}{Z_{1}}\mathbb{P}(\mathbf{y}^1|\mathbf{X}^1,Pa^1(i),\theta^1)\exp\left ( -\beta^1\mathcal{E}(Pa^1(i),Pa^*(i)) \right ) \\
+Pa^1\left(i\right) \sim \frac{1}{Z_{1}}\mathbb{P}\left(\mathbf{y}^1|\mathbf{X}^1,Pa^1\left(i\right),\theta^1\right)\exp\left( -\beta^1\mathcal{E}\left(Pa^1\left(i\right),Pa^*\left(i\right)\right) \right) \\
 \vdots \\
-Pa^d(i) \sim \frac{1}{Z_{d}}\mathbb{P}(\mathbf{y}^d|\mathbf{X}^d,Pa^d(i),\theta^d)\exp\left ( -\beta^d\mathcal{E}(Pa^d(i),Pa^*(i)) \right )
+Pa^d\left(i\right) \sim \frac{1}{Z_{d}}\mathbb{P}\left(\mathbf{y}^d|\mathbf{X}^d,Pa^d\left(i\right),\theta^d\right)\exp\left( -\beta^d\mathcal{E}\left(Pa^d\left(i\right),Pa^*\left(i\right)\right) \right)
 \end{split}
 \end{equation*}
 \item Gibbs update of the hypernetwork
 \begin{equation*}
-Pa^*(i) \sim \frac{1}{Z}\prod_{j=1}^{d}\exp\left ( -\beta^j\mathcal{E}(Pa^j(i),Pa^*(i)) \right )
+Pa^*\left(i\right) \sim \frac{1}{Z}\prod_{j=1}^{d}\exp\left(-\beta^j\mathcal{E}\left(Pa^j\left(i\right),Pa^*\left(i\right)\right) \right)
 \end{equation*}
 \item Metropolis-Hastings updates of the Gaussian process hyperparameters in each of the $d$ datasets (with $\theta_{new}$ obtained by adding a Gaussian random variable to $\theta$)
 \begin{equation*}
 \begin{split}
-p_1(accept) = \min\left(1,\frac{\mathbb{P}(\mathbf{y}^1|\mathbf{X}^1,Pa^1(i),\theta_{new}^1)\mathbb{P}(\theta_{new}^1)}{\mathbb{P}(\mathbf{y}^1|\mathbf{X}^1,Pa^1(i),\theta^1)\mathbb{P}(\theta^1)}\right) \\
+p_1\left(accept\right) = \min\left(1,\frac{\mathbb{P}\left(\mathbf{y}^1|\mathbf{X}^1,Pa^1\left(i\right),\theta_{new}^1\right)\mathbb{P}\left(\theta_{new}^1\right)}{\mathbb{P}\left(\mathbf{y}^1|\mathbf{X}^1,Pa^1\left(i\right),\theta^1\right)\mathbb{P}\left(\theta^1\right)}\right) \\
 \vdots \\
-p_d(accept) = \min\left(1,\frac{\mathbb{P}(\mathbf{y}^d|\mathbf{X}^d,Pa^d(i),\theta_{new}^d)\mathbb{P}(\theta_{new}^d)}{\mathbb{P}(\mathbf{y}^d|\mathbf{X}^d,Pa^d(i),\theta^d)\mathbb{P}(\theta^d)}\right)
+p_d\left(accept\right) = \min\left(1,\frac{\mathbb{P}\left(\mathbf{y}^d|\mathbf{X}^d,Pa^d\left(i\right),\theta_{new}^d\right)\mathbb{P}\left(\theta_{new}^d\right)}{\mathbb{P}\left(\mathbf{y}^d|\mathbf{X}^d,Pa^d\left(i\right),\theta^d\right)\mathbb{P}\left(\theta^d\right)}\right)
 \end{split}
 \end{equation*}
 \item Metropolis-Hastings updates of the temperature parameters in each of the $d$ datasets (with $\beta_{new}$ obtained by adding a Gaussian random variable to $\beta$)
 \begin{equation*}
 \begin{split}
-p_1(accept) = \min\left(1,\frac{\frac{1}{Z_{new}^1}\exp\left ( -\beta_{new}^1\mathcal{E}(Pa^1(i),Pa^*(i)) \right )\mathbb{P}(\beta_{new}^1)}{\frac{1}{Z^1}\exp\left ( -\beta^1\mathcal{E}(Pa^1(i),Pa^*(i)) \right )\mathbb{P}(\beta^1)}\right) \\
+p_1\left(accept\right) = \min\left(1,\frac{\frac{1}{Z_{new}^1}\exp\left( -\beta_{new}^1\mathcal{E}\left(Pa^1\left(i\right),Pa^*\left(i\right)\right) \right) \mathbb{P}\left(\beta_{new}^1\right)}{\frac{1}{Z^1}\exp\left( -\beta^1\mathcal{E}\left(Pa^1\left(i\right),Pa^*\left(i\right)\right) \right)\mathbb{P}\left(\beta^1\right)}\right) \\
 \vdots \\
-p_d(accept) = \min\left(1,\frac{\frac{1}{Z_{new}^d}\exp\left ( -\beta_{new}^d\mathcal{E}(Pa^d(i),Pa^*(i)) \right )\mathbb{P}(\beta_{new}^d)}{\frac{1}{Z^d}\exp\left ( -\beta^d\mathcal{E}(Pa^d(i),Pa^*(i)) \right )\mathbb{P}(\beta^d)}\right)
+p_d\left(accept\right) = \min\left(1,\frac{\frac{1}{Z_{new}^d}\exp\left( -\beta_{new}^d\mathcal{E}\left(Pa^d\left(i\right),Pa^*\left(i\right)\right) \right) \mathbb{P}\left(\beta_{new}^d\right)}{\frac{1}{Z^d}\exp\left( -\beta^d\mathcal{E}\left(Pa^d\left(i\right),Pa^*\left(i\right)\right) \right)\mathbb{P}\left(\beta^d\right)}\right)
 \end{split}
 \end{equation*}
 \end{enumerate}
@@ -80,13 +85,13 @@ Like previously, $Z$ always represents a normalising constant. These are compute
 
 hCSI makes use of the Python CSI implementation due to its optimised likelihood computation. $\sim99\%$ of hCSI's computational time goes to likelihood evaluation in the Gibbs updates of the individual dataset network structures. A feature not in use in the iPlant version of the app (due to the resource limitations) is the \texttt{--LikelihoodPool} command line argument, which opens up a second level of parallelisation when performing likelihood computations. The option is provided for users who want to speed up run time on resource-heavy local computational platforms.
 
-The model is initialised completely randomly. Each perturbation has a random parental set combination assigned to it as the starting value with equal weighting, and the same happens for the hypernetwork. The starting Gaussian process hyperparameters are sampled from U(0,1) for each dataset independently (in contrast to the original Matlab implementation, where a single set of sampled values are copied over for each dataset as the starting hyperparameters), all of the temperatures are initialised at 0.1.
+The model is initialised completely randomly. Each perturbation has a random parental set combination assigned to it as the starting value with equal weighting, and the same happens for the hypernetwork. The starting Gaussian process hyperparameters are sampled from $U\left(0,1\right)$ for each dataset independently (in contrast to the original Matlab implementation, where a single set of sampled values are copied over for each dataset as the starting hyperparameters), all of the temperatures are initialised at 0.1.
 
 In contrast to the original Matlab implementation, all four sampling procedures (individual networks, hypernetwork, hyperparameters, temperatures) are performed in tandem, with a default total of 25,000 steps. In Matlab, one of those operations was chosen randomly as a single step, with 100,000 default total steps.
 
 In order to avoid the same RNG chains being used, the RNG seed is initiated based on the row number of the gene being used as the child at that point.
 
-The hyperparameter and temperature sampling steps feature the addition of a random Gaussian variable, which is sampled from N(0,1) and multiplied by a scaling constant. The scaling constant is initialised at 0.1 and re-evaluated every 100 steps, aiming to keep the Metropolis-Hastings acceptance rate at around 0.25. In the case of less than 15 accepted jumps (out of 100), the transition operator is deemed to be not localised enough and the scaling constant is multiplied by 0.9. If over 35 jumps get accepted, the scaling constant is multiplied by 1.1 to make the sampling be less localised. This, as well as the actual sampling of the hyperparameter/temperature values, is performed independently for hyperparameters and temperatures and each dataset.
+The hyperparameter and temperature sampling steps feature the addition of a random Gaussian variable, which is sampled from $N\left(0,1\right)$ and multiplied by a scaling constant. The scaling constant is initialised at 0.1 and re-evaluated every 100 steps, aiming to keep the Metropolis-Hastings acceptance rate at around 0.25. In the case of less than 15 accepted jumps (out of 100), the transition operator is deemed to be not localised enough and the scaling constant is multiplied by 0.9. If over 35 jumps get accepted, the scaling constant is multiplied by 1.1 to make the sampling be less localised. This, as well as the actual sampling of the hyperparameter/temperature values, is performed independently for hyperparameters and temperatures and each dataset.
 
 
 \bibliographystyle{myplainnat}
