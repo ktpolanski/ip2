@@ -10,7 +10,7 @@ mv $1 /scripts/demo/$1
 cd /scripts/demo
 
 #anti-crash loop. gotta love randomly unstable code
-until python run_two_sample_TL_pst.py $@; do
+until python run_two_sample.py $@; do
    python CSV_fix.py $1
    sleep 1
 done
