@@ -1,0 +1,47 @@
+K 25
+svn:wc:ra_dav:version-url
+V 58
+/stegle/!svn/ver/92/work/GP/GPTwoSample/release/pygp/covar
+END
+productCF.py
+K 25
+svn:wc:ra_dav:version-url
+V 71
+/stegle/!svn/ver/92/work/GP/GPTwoSample/release/pygp/covar/productCF.py
+END
+sumCF.py
+K 25
+svn:wc:ra_dav:version-url
+V 67
+/stegle/!svn/ver/92/work/GP/GPTwoSample/release/pygp/covar/sumCF.py
+END
+__init__.py
+K 25
+svn:wc:ra_dav:version-url
+V 70
+/stegle/!svn/ver/92/work/GP/GPTwoSample/release/pygp/covar/__init__.py
+END
+stringCF.py
+K 25
+svn:wc:ra_dav:version-url
+V 70
+/stegle/!svn/ver/92/work/GP/GPTwoSample/release/pygp/covar/stringCF.py
+END
+sederiv.py
+K 25
+svn:wc:ra_dav:version-url
+V 69
+/stegle/!svn/ver/92/work/GP/GPTwoSample/release/pygp/covar/sederiv.py
+END
+noiseCF.py
+K 25
+svn:wc:ra_dav:version-url
+V 69
+/stegle/!svn/ver/92/work/GP/GPTwoSample/release/pygp/covar/noiseCF.py
+END
+sq_dist.py
+K 25
+svn:wc:ra_dav:version-url
+V 69
+/stegle/!svn/ver/92/work/GP/GPTwoSample/release/pygp/covar/sq_dist.py
+END

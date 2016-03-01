@@ -1,0 +1,52 @@
+8
+
+dir
+94
+http://svn.tuebingen.mpg.de/stegle/work/GP/GPTwoSample/release/mlib/opt
+http://svn.tuebingen.mpg.de/stegle
+
+
+
+2009-10-01T14:56:26.302266Z
+92
+stegle
+
+
+svn:special svn:externals svn:needs-lock
+
+
+
+
+
+
+
+
+
+
+
+982de8b3-2e49-486b-9c13-052c4db511ea
+
+util.py
+file
+
+
+
+
+2009-10-01T18:22:04.000000Z
+2598ca6b78c44a432d4b4f9a735f6f93
+2009-10-01T14:56:26.302266Z
+92
+stegle
+
+__init__.py
+file
+
+
+
+
+2009-10-01T18:22:04.000000Z
+d41d8cd98f00b204e9800998ecf8427e
+2009-10-01T14:49:11.042329Z
+82
+stegle
+

@@ -1,0 +1,47 @@
+K 25
+svn:wc:ra_dav:version-url
+V 51
+/stegle/!svn/ver/92/work/GP/GPTwoSample/release/src
+END
+twosample_interval_smooth.py
+K 25
+svn:wc:ra_dav:version-url
+V 80
+/stegle/!svn/ver/92/work/GP/GPTwoSample/release/src/twosample_interval_smooth.py
+END
+twosample.py
+K 25
+svn:wc:ra_dav:version-url
+V 64
+/stegle/!svn/ver/92/work/GP/GPTwoSample/release/src/twosample.py
+END
+__init__.py
+K 25
+svn:wc:ra_dav:version-url
+V 63
+/stegle/!svn/ver/92/work/GP/GPTwoSample/release/src/__init__.py
+END
+demo_twosample.py
+K 25
+svn:wc:ra_dav:version-url
+V 69
+/stegle/!svn/ver/92/work/GP/GPTwoSample/release/src/demo_twosample.py
+END
+hinton.py
+K 25
+svn:wc:ra_dav:version-url
+V 61
+/stegle/!svn/ver/92/work/GP/GPTwoSample/release/src/hinton.py
+END
+twosample_interval.py
+K 25
+svn:wc:ra_dav:version-url
+V 73
+/stegle/!svn/ver/92/work/GP/GPTwoSample/release/src/twosample_interval.py
+END
+twosample_interval_gibbs.py
+K 25
+svn:wc:ra_dav:version-url
+V 79
+/stegle/!svn/ver/92/work/GP/GPTwoSample/release/src/twosample_interval_gibbs.py
+END

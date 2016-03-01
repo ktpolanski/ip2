@@ -1,0 +1,65 @@
+K 25
+svn:wc:ra_dav:version-url
+V 52
+/stegle/!svn/ver/92/work/GP/GPTwoSample/release/pygp
+END
+EPLikelihood.py
+K 25
+svn:wc:ra_dav:version-url
+V 68
+/stegle/!svn/ver/92/work/GP/GPTwoSample/release/pygp/EPLikelihood.py
+END
+gpr.py
+K 25
+svn:wc:ra_dav:version-url
+V 59
+/stegle/!svn/ver/92/work/GP/GPTwoSample/release/pygp/gpr.py
+END
+demo_gpr_robust.py
+K 25
+svn:wc:ra_dav:version-url
+V 71
+/stegle/!svn/ver/92/work/GP/GPTwoSample/release/pygp/demo_gpr_robust.py
+END
+demo_gpr.py
+K 25
+svn:wc:ra_dav:version-url
+V 64
+/stegle/!svn/ver/92/work/GP/GPTwoSample/release/pygp/demo_gpr.py
+END
+demo_gpc.py
+K 25
+svn:wc:ra_dav:version-url
+V 64
+/stegle/!svn/ver/92/work/GP/GPTwoSample/release/pygp/demo_gpc.py
+END
+gprEP.py
+K 25
+svn:wc:ra_dav:version-url
+V 61
+/stegle/!svn/ver/92/work/GP/GPTwoSample/release/pygp/gprEP.py
+END
+gpcEP.py
+K 25
+svn:wc:ra_dav:version-url
+V 61
+/stegle/!svn/ver/92/work/GP/GPTwoSample/release/pygp/gpcEP.py
+END
+__init__.py
+K 25
+svn:wc:ra_dav:version-url
+V 64
+/stegle/!svn/ver/92/work/GP/GPTwoSample/release/pygp/__init__.py
+END
+demo_gpr_constrained.py
+K 25
+svn:wc:ra_dav:version-url
+V 76
+/stegle/!svn/ver/92/work/GP/GPTwoSample/release/pygp/demo_gpr_constrained.py
+END
+gpr_plot.py
+K 25
+svn:wc:ra_dav:version-url
+V 64
+/stegle/!svn/ver/92/work/GP/GPTwoSample/release/pygp/gpr_plot.py
+END

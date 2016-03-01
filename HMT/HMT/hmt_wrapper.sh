@@ -13,4 +13,4 @@ python3 /scripts/parse_genelines.py $2
 cut -f 4 genelines.bed > universe.txt
 
 #and that's all, folks. HMT time
-python3 /scripts/hmt.py --Universe universe.txt ${}
+python3 /scripts/hmt.py --Universe universe.txt ${@:3}

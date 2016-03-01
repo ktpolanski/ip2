@@ -1,0 +1,67 @@
+8
+
+dir
+94
+http://svn.tuebingen.mpg.de/stegle/work/GP/GPTwoSample/release/demo
+http://svn.tuebingen.mpg.de/stegle
+
+
+
+2009-10-01T14:59:28.760689Z
+93
+stegle
+
+
+svn:special svn:externals svn:needs-lock
+
+
+
+
+
+
+
+
+
+
+
+982de8b3-2e49-486b-9c13-052c4db511ea
+
+run_two_sample.py
+file
+
+
+
+
+2009-10-01T18:22:04.000000Z
+522923a0605e96cc4bacf894f802ca3b
+2009-10-01T14:59:28.760689Z
+93
+stegle
+
+__init__.py
+file
+
+
+
+
+2009-10-01T18:22:04.000000Z
+d41d8cd98f00b204e9800998ecf8427e
+2009-10-01T14:56:26.302266Z
+92
+stegle
+
+out
+dir
+
+demo.csv
+file
+
+
+
+
+2009-10-01T18:22:04.000000Z
+aee14a231c45d7f3ba4fdbe5566e1f4e
+2009-10-01T14:56:26.302266Z
+92
+stegle
+
