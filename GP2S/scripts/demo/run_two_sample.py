@@ -29,11 +29,12 @@ def parse_args():
     parser.add_argument('--TL', dest='tl', action='store_true', help='Flag. If provided, the time-local version of GP2S will be ran in an attempt to identify the time of first differential expression.')
     parser.add_argument('--Theta0', dest='theta0', type=str, default='0.5,1,0.4', help='The starting values for the hyperparameters for the control time series, delimited by commas. Default: 0.5,1,0.4')
     parser.add_argument('--ThetaZ', dest='thetaz', type=str, default='0.7,2,1E-5', help='The starting values for the hyperparameters for the treated time series, delimited by commas. Default: 0.7,2,1E-5')
+    parser.add_argument('--Maxiter', dest='maxiter', type=int, default=20, help='Number of optimisation iterations. Default: 20')
     parser.add_argument('--PriorZ', dest='priorz', type=float, default=0.3, help='TL-specific input. Prior belief in differential expression. Default: 0.3')
     parser.add_argument('--FixZ', dest='fixz', type=int, default=2, help='TL-specific input. The first N time points will be initially fixed to non-DE in the sampler. Default: 2')
+    parser.add_argument('--ThreshZ', dest='threshz', type=float, default=0.5, help='TL-specific input. Z\'s greater than or equal to this value get interpreted as DE, and the first occurrence of Z with this threshold cleared will be reported as the ToFDE. Default: 0.5')
     parser.add_argument('--GibbsN', dest='ngibbs', type=int, default=30, help='TL-specific input, controlling the number of Gibbs samples. Default: 30')
-    parser.add_argument('--Maxiter', dest='maxiter', type=int, default=20, help='Number of optimisation iterations. Default: 20')
-    parser.add_argument('--Predpoints', dest='predpoints', type=int, default=20, help='At how many (linearly spaced from the first to last time point) points should the GP be evaluated? Default: 20')
+    parser.add_argument('--Predpoints', dest='predpoints', type=int, default=20, help='TL-specific input. At how many (linearly spaced from the first to last time point) points should the GP be evaluated? Default: 20')
     args = parser.parse_args()
     
     args.theta0 = args.theta0.split(',')
@@ -115,14 +116,22 @@ def run_gp2s(gene,R,args):
     if args.tl:
         #creates score and time local predictions
         Tpredict = SP.linspace(T.min(),T.max(),args.predpoints)[:,None]
-        [score,Z] = gptest.test_interval(M0,M1,verbose=False,opt=True,Ngibbs_iterations=args.ngibbs,XPz=Tpredict,logthetaZ=args.thetaz,fix_Z=args.fixz)
+        [score,Z] = gptest.test_interval(M0,M1,verbose=False,opt=True,Ngibbs_iterations=args.ngibbs,XPz=Tpredict,logthetaZ=args.thetaz,fix_Z=args.fixz) 
         Z1 = [str(x) for x in Z]
-        str_out = '\n'+gene+'\t'+str(score)
-        str_out2='\n'+gene+'\t'+'\t'.join(Z1)
+        str_out = gene+'\t'+str(score)
+        tofde = np.argmax(Z>=args.threshz)
+        #for reasons I don't get, it spits out 0 in two circumstances
+        #when the condition is already satisfied at the start
+        #and when it's not satisfied at all
+        if tofde==0 and Z[0]<args.threshz:
+            str_out = str_out+'\tNaN\n'
+        else:
+            str_out = str_out++'\t'+Z1[tofde]+'\n'
+        str_out2=gene+'\t'+'\t'.join(Z1)+'\n'
     else:
         #only score
         score = gptest.test(M0,M1,verbose=False,opt=True)
-        str_out = '\n'+gene+'\t'+str(score)
+        str_out = gene+'\t'+str(score)+'\n'
         str_out2=None
     #update figure window
     PL.draw()
@@ -149,14 +158,8 @@ def main():
     
     #run GP2S proper
     writer = open('scores.txt','a')
-    writer.write('Gene_ID\tScore')
     if args.tl:
-        writer.write('\tToFDE')
         writer2 = open('Z.txt','w')
-        T=[x[1] for x in list(R.columns)]
-        Tpredict = SP.linspace(T.min(),T.max(),args.predpoints)
-        Tpredict1 = [str(x) for x in Tpredict]
-        writer2.write('Gene_ID\t'+'\t'.join(Tpredict1))
     if args.pool > 1:
         p = mp.Pool(args.pool, _pool_init, (R, args))
         for line, line2 in p.imap(run_gp2s_pool,list(R.index)):
