@@ -8,6 +8,7 @@
 SCRATCH=$PWD
 mv $1 /scripts/demo/$1
 cd /scripts/demo
+mkdir plots
 
 #anti-crash loop. gotta love randomly unstable code
 until python run_two_sample.py $@; do
