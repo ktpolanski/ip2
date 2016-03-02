@@ -12,7 +12,7 @@ RUN apt-get update && apt-get -y upgrade && \
 # upgrade pandas
 RUN pip install --upgrade pandas
 # downgrade numpy, as the pandas upgraded version somehow breaks time local mode
-RUN pip uninstall numpy
+RUN pip install -I numpy==1.8.2
 
 # add code
 RUN mkdir /scripts

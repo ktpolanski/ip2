@@ -128,7 +128,7 @@ def run_gp2s(gene,R,args):
         if tofde==0 and Z[0]<args.threshz:
             str_out = str_out+'\tNaN\n'
         else:
-            str_out = str_out++'\t'+Z1[tofde]+'\n'
+            str_out = str_out+'\t'+Z1[tofde]+'\n'
         str_out2=gene+'\t'+'\t'.join(Z1)+'\n'
     else:
         #only score
