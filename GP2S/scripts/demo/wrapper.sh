@@ -6,7 +6,7 @@
 
 #the GP2S script needs to run in its magical home directory or else everything fails because paths
 SCRATCH=$PWD
-mv $1 /scripts/demo/$1
+cp $1 /scripts/demo/$1
 cd /scripts/demo
 mkdir plots
 
