@@ -162,7 +162,7 @@ def main():
     #run GP2S proper
     writer = open('scores.txt','a')
     if args.tl:
-        writer2 = open('Z.txt','w')
+        writer2 = open('Z.txt','a')
     if args.pool > 1:
         p = mp.Pool(args.pool, _pool_init, (R, args))
         for line, line2 in p.imap(run_gp2s_pool,list(R.index)):
