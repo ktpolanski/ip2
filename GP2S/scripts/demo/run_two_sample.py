@@ -43,6 +43,8 @@ def parse_args():
         args.theta0[i] = np.log(float(args.theta0[i]))
     for i in range(len(args.thetaz)):
         args.thetaz[i] = np.log(float(args.thetaz[i]))
+    args.theta0 = np.array(args.theta0)
+    args.thetaz = np.array(args.thetaz)
     args.fixz = SP.array(np.arange(args.fixz))
     
     return(args)
@@ -109,7 +111,7 @@ def run_gp2s(gene,R,args):
     Y0_hold = R.loc[gene][conds[0]].values
     Y1_hold = R.loc[gene][conds[1]].values
     Y0 = np.reshape(Y0_hold,(Nrepl,len(Tc)),order='C')
-    Y1 = np.reshape(Y1_hold,(Nrepl,len(Tc)),order='C')        
+    Y1 = np.reshape(Y1_hold,(Nrepl,len(Tc)),order='C')
     #prepare GP2S structures
     M0 = [T,Y0]
     M1 = [T,Y1]
