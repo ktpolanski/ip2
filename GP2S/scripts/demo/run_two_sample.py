@@ -128,7 +128,8 @@ def run_gp2s(gene,R,args):
         if tofde==0 and Z[0]<args.threshz:
             str_out = str_out+'\tNaN\n'
         else:
-            str_out = str_out+'\t'+str(Tpredict[tofde])+'\n'
+            #need to Tpredict[][] as it's a 2D'ish array
+            str_out = str_out+'\t'+str(Tpredict[tofde][0])+'\n'
         str_out2=gene+'\t'+'\t'.join(Z1)+'\n'
     else:
         #only score
