@@ -1,5 +1,5 @@
 # run as:
-#   docker build -f Dockerfile -t csi-crapdocker .
+#   docker build -f Dockerfile -t csi .
 
 # base everything on a recent Ubuntu
 FROM debian:latest
