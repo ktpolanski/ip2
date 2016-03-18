@@ -176,7 +176,8 @@ warn "\nNumber of statistically significant dyads: $dyad_count\n\n" ;
 my $i = 1;
 foreach my $dyad_seq (sort keys %significant_dyads) {
     my $P = $significant_dyads{$dyad_seq};
-    print ">dyad_$i P=$P\n$dyad_seq\n";
+    $dyad_seq =~ tr/./N/;
+    print ">dyad_$i P=$P\n$dyad_seq ($dyad_seq)\n";
     $i++
 }
 
