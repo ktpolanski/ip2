@@ -84,7 +84,7 @@ def main():
 	#how many tests will we actually have?
 	test_count = []
 	for mot in motifs:
-		test_count.append(np.sum(fimo[:,0]==mot))
+		test_count.append(len(np.unique(fimo[fimo[:,0]==mot,1])))
 	test_count = np.asarray(test_count)
 	
 	#time to get testing
