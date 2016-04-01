@@ -199,7 +199,7 @@ def main(args=None):
         hdf5output.flush()
 
     if op.weighttrunc:
-        val = float(op.weightrunc)
+        val = float(op.weighttrunc)
         if 0 < val < 1:
             sys.stderr.write("Error: The weight truncation must be between zero and one\n")
             sys.exit(1)
@@ -207,7 +207,7 @@ def main(args=None):
         if val > 0.01:
             logger.warning("weight truncation should probably be less than 0.01")
 
-        em.weightrunc = val
+        em.weighttrunc = val
 
     if op.initweights:
         if op.initweights == 'uniform':
