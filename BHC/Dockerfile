@@ -16,4 +16,4 @@ COPY scripts /scripts
 RUN Rscript /scripts/setup.R
 
 #that's it, ready to use
-ENTRYPOINT ["Rscript", "/scripts/bhc.R"]
+ENTRYPOINT ["bash", "/scripts/bhc_wrapper.py"]

@@ -24,20 +24,9 @@ discreteData = DiscretiseData(t(data), percentiles=percentiles)
 discreteData = t(discreteData)
 
 #BHC runs proper
-if (args$mode == 'time-course')
+if (args$mode == 'multinomial')
 {
-	#get them time points as time points
-	samples = as.numeric(samples)
-	#clustering proper
-	hc = bhc(discreteData, genes, timePoints=samples, dataType='time-course', numThreads=args$pool, verbose=TRUE)
-	if (args$heatmap)
-	{
-		png('heatmap.png')
-		heatmap(data, Colv=NA, Rowv=hc, scale="none", col=brewer.pal(11,'RdBu'))
-		dev.off()
-	}
-} else {
-	hc = bhc(discreteData, genes, dataType='multinomial', numThreads=args$pool, verbose=TRUE)
+	hc = bhc(discreteData, genes, dataType=args$mode, numThreads=args$pool, verbose=TRUE)
 	if (args$heatmap)
 	{
 		#cluster samples too, for the heatmap
@@ -47,6 +36,17 @@ if (args$mode == 'time-course')
 		hc2 = bhc(discreteData2, samples, dataType='multinomial', numThreads=args$pool, verbose=TRUE)
 		png('heatmap.png')
 		heatmap(data, Colv=hc2, Rowv=hc, scale="none", col=brewer.pal(11,'RdBu'))
+		dev.off()
+	}
+} else {
+	#get them time points as time points
+	samples = as.numeric(samples)
+	#clustering proper
+	hc = bhc(discreteData, genes, timePoints=samples, dataType=args$mode, numThreads=args$pool, verbose=TRUE)
+	if (args$heatmap)
+	{
+		png('heatmap.png')
+		heatmap(data, Colv=NA, Rowv=hc, scale="none", col=brewer.pal(11,'RdBu'))
 		dev.off()
 	}
 }
