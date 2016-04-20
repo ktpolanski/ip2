@@ -4,9 +4,9 @@
 #grab existing R image
 FROM r-base:latest
 
-#need Python for R's argparse port
+#need Python for R's argparse port and subsequent BiNGO/MEME postprocessing
 RUN apt-get -y update && apt-get -y upgrade
-RUN apt-get -y install python3 ttf-bitstream-vera
+RUN apt-get -y install python3 python3-numpy ttf-bitstream-vera
 
 #copy over scripts
 RUN mkdir /scripts
