@@ -1,6 +1,7 @@
 import argparse
 import numpy as np
 import pandas as pd
+import sys
 
 parser = argparse.ArgumentParser()
 parser.add_argument('findstr',type=str)
@@ -29,7 +30,7 @@ for i in range(genelines.shape[0]):
 			break
 	if local_toggle == 0:
 		error_toggle = 1
-		sys.stderr.write('Failed to find specified header ('+findstr[:-1]+') in GFF3 line: '+'\t'.join(genelines[i,:]))
+		sys.stderr.write('Failed to find specified header ('+findstr[:-1]+') in GFF3 line: '+'\t'.join([str(x) for x in genelines[i,:]])+'\n')
 
 #if our input is borked, we can't process it
 if error_toggle == 1:
