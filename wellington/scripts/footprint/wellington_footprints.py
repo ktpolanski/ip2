@@ -25,8 +25,8 @@ __version__ = "0.2.0"
 
 parser = argparse.ArgumentParser(description='Footprint the DHSs in a DNase-seq experiment using the Wellington Algorithm.')
 parser.add_argument("-b","--bonferroni",action="store_true", help="Performs a bonferroni correction (default: False)",default=False)
-parser.add_argument("-sh", "--shoulder-sizes", help="Range of shoulder sizes to try in format \"from;to;step\" (default: 35;36;1)",default="35,36,1",type=str)
-parser.add_argument("-fp", "--footprint-sizes", help="Range of footprint sizes to try in format \"from;to;step\" (default: 11;26;2)",default="11,26,2",type=str)
+parser.add_argument("-sh", "--shoulder-sizes", help="Range of shoulder sizes to try in format \"from;to;step\" (default: 35;36;1)",default="35;36;1",type=str)
+parser.add_argument("-fp", "--footprint-sizes", help="Range of footprint sizes to try in format \"from;to;step\" (default: 11;26;2)",default="11;26;2",type=str)
 parser.add_argument("-d", "--one_dimension",action="store_true", help="Use Wellington 1D instead of Wellington (default: False)",default=False)
 parser.add_argument("-fdr","--FDR_cutoff", help="Write footprints using the FDR selection method at a specific FDR (default: 0.01)",default=0.01,type=float)
 parser.add_argument("-fdriter", "--FDR_iterations", help="How many randomisations to use when performing FDR calculations (default: 100)",default=100,type=int)
