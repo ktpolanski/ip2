@@ -30,9 +30,9 @@ If you want to get a feel for how GP2S operates without using your dataset, a sm
 
 ### Gaussian Process Hyperparameters
 
-**Default:** 0.5,1,0.4
+**Default:** 0.5;1;0.4
 
-The starting values of the hyperparameters of the Gaussian processes used to fit the data, provided as a comma-delimited list of length scale, process variance and noise variance. These values are subsequently adjusted within the script to optimise the fit.
+The starting values of the hyperparameters of the Gaussian processes used to fit the data, provided as a semicolon-delimited list of length scale, process variance and noise variance. These values are subsequently adjusted within the script to optimise the fit.
 
 ### Hyperparameter Optimisation Iterations
 
@@ -74,9 +74,9 @@ The differential expression status of each time point on the higher resolution t
 
 ### Z Curve Hyperparameters
 
-**Default:** 0.7,2,1E-5
+**Default:** 0.7;2;1E-5
 
-Once the Gibbs sampler is done, the final probabilities of differential expression are smoothed with a second Gaussian process fit. As in the case of the Gaussian processes used to fit the data, the hyperparameters for this Gaussian process are accepted on input as a comma-delimited list of length scale, process variance and noise variance. Unlike the other Gaussian process hyperparameters, these are not tuned within the script.
+Once the Gibbs sampler is done, the final probabilities of differential expression are smoothed with a second Gaussian process fit. As in the case of the Gaussian processes used to fit the data, the hyperparameters for this Gaussian process are accepted on input as a semicolon-delimited list of length scale, process variance and noise variance. Unlike the other Gaussian process hyperparameters, these are not tuned within the script.
 
 ### Differential Expression Probability Threshold
 

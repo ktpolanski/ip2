@@ -48,9 +48,9 @@ If you provide an annotation, Wigwams can automatically create hyperlinks to onl
 
 ### Mining - Set Sizes
 
-**Default:** 50, 100, 150, 200, 250
+**Default:** 50;100;150;200;250
 
-When performing module mining, Wigwams evaluates the top co-expressed genes with a single "seed gene" to detect co-regulatory phenomena. However, such phenomena can be occurring at different scales, with the potential to lose some of the smaller scale ones (a significant overlap of a low number of top co-expressed genes, but no additional overlap as the number of evaluated co-expressed genes becomes increased). As such, Wigwams evaluates a variety of sizes of top co-expressed gene sets to avoid such situations. **If performing Wigwams on a small scale dataset, make sure that your largest set size does not exceed the total number of genes in your dataset.** Scale them back accordingly, and try to keep them relatively small in comparison to your overall dataset size (try not to exceed 50% of your gene pool, even in very small datasets).
+When performing module mining, Wigwams evaluates the top co-expressed genes with a single "seed gene" to detect co-regulatory phenomena. However, such phenomena can be occurring at different scales, with the potential to lose some of the smaller scale ones (a significant overlap of a low number of top co-expressed genes, but no additional overlap as the number of evaluated co-expressed genes becomes increased). As such, Wigwams evaluates a variety of sizes of top co-expressed gene sets to avoid such situations. **If performing Wigwams on a small scale dataset, make sure that your largest set size does not exceed the total number of genes in your dataset.** Scale them back accordingly, and try to keep them relatively small in comparison to your overall dataset size (try not to exceed 50% of your gene pool, even in very small datasets). Provide your desired set sizes as a semicolon-delimited list.
 
 ### Mining - Alpha
 
@@ -90,9 +90,9 @@ Whilst merging deals with redundancy among modules spanning the same time course
 
 ### Size Thresholding
 
-**Default:** None. We don't know how many time course datasets you'll be using. For the analysis in [Polanski et al. (2014)][polanski2014], we used 10 10 8 5 5
+**Default:** None. We don't know how many time course datasets you'll be using. For the analysis in [Polanski et al. (2014)][polanski2014], we used 10;10;8;5;5
 
-At the end of the Wigwams analysis, you may wish to remove small modules to not clutter the output with very petite phenomena. This is an optional step, and leaving the field empty will not filter your module list in any way. If you do wish to perform this filtering step, provide N-1 desired module sizes, where N is the total number of time course datasets used on input, with the desired module sizes going from 2 to N condition span.
+At the end of the Wigwams analysis, you may wish to remove small modules to not clutter the output with very petite phenomena. This is an optional step, and leaving the field empty will not filter your module list in any way. If you do wish to perform this filtering step, provide N-1 desired module sizes, where N is the total number of time course datasets used on input, with the desired module sizes going from 2 to N condition span. Provide your desired size thresholds as a semicolon-delimited list.
 
 ## Algorithm Alterations and Enhancements
 

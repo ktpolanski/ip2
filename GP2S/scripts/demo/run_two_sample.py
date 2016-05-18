@@ -27,9 +27,9 @@ def parse_args():
     parser.add_argument(dest='expr', type=argparse.FileType('r'), help='CSV file featuring the expression profiles of the genes across the control and the treatment. Gene names in first column. First two rows for headers - row one for condition name (e.g. control/treated), row two for time point.')
     parser.add_argument('--Pool', dest='pool', type=int, default=1, help='Number of processes to use when parallelising on a per-gene basis. Default: 1 (no parallelisation)')
     parser.add_argument('--TL', dest='tl', action='store_true', help='Flag. If provided, the time-local version of GP2S will be ran in an attempt to identify the time of first differential expression.')
-    parser.add_argument('--Theta0', dest='theta0', type=str, default='0.5,1,0.4', help='The starting values for the hyperparameters for the Gaussian processes, delimited by commas. Default: 0.5,1,0.4')
+    parser.add_argument('--Theta0', dest='theta0', type=str, default='0.5;1;0.4', help='The starting values for the hyperparameters for the Gaussian processes, delimited by commas. Default: 0.5,1,0.4')
     parser.add_argument('--Maxiter', dest='maxiter', type=int, default=20, help='Number of optimisation iterations. Default: 20')
-    parser.add_argument('--ThetaZ', dest='thetaz', type=str, default='0.7,2,1E-5', help='TL-specific input. The values of the hyperparameters for the Gaussian process used to smooth out the Z, not optimised within the code. Default: 0.7,2,1E-5')
+    parser.add_argument('--ThetaZ', dest='thetaz', type=str, default='0.7;2;1E-5', help='TL-specific input. The values of the hyperparameters for the Gaussian process used to smooth out the Z, not optimised within the code. Default: 0.7,2,1E-5')
     parser.add_argument('--PriorZ', dest='priorz', type=float, default=0.3, help='TL-specific input. Prior belief in differential expression. Default: 0.3')
     parser.add_argument('--FixZ', dest='fixz', type=int, default=2, help='TL-specific input. The first N time points will be initially fixed to non-DE in the sampler. Default: 2')
     parser.add_argument('--ThreshZ', dest='threshz', type=float, default=0.5, help='TL-specific input. Z\'s greater than or equal to this value get interpreted as DE, and the first occurrence of Z with this threshold cleared will be reported as the ToFDE. Default: 0.5')
@@ -37,8 +37,8 @@ def parse_args():
     parser.add_argument('--Predpoints', dest='predpoints', type=int, default=20, help='TL-specific input. At how many (linearly spaced from the first to last time point) points should the GP be evaluated? Default: 20')
     args = parser.parse_args()
     
-    args.theta0 = args.theta0.split(',')
-    args.thetaz = args.thetaz.split(',')
+    args.theta0 = args.theta0.split(';')
+    args.thetaz = args.thetaz.split(';')
     for i in range(len(args.theta0)):
         args.theta0[i] = np.log(float(args.theta0[i]))
     for i in range(len(args.thetaz)):
