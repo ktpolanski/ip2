@@ -66,9 +66,9 @@ The number of complete sampling cycles (Gibbs sampling of the individual network
 
 The algorithm is fully randomly initialised, so it will take it a while to arrive in the ballpark of the proper model. These many first samples will be discarded, writing them off as the time the sampler to land more less where it should be. Increasing this value will increase confidence in the convergence of the final result, but may require compensation from the sample count to ensure enough information is making it to the final model. Decreasing this value is not recommended.
 
-### No Data Standardisation
+### Data Normalisation
 
-CSI fits are calibrated to normally distributed expression data with zero mean and unit variance. By default, hCSI standardises the expression data it receives on a per-gene, per-condition basis to match this requirement. If you believe you have strong reason to not standardise the data automatically within the code, check this box.
+CSI fits are calibrated to expression data with zero mean and unit variance. By default, CSI standardises the expression data it receives on a per-gene, per-condition basis to match this requirement. If you believe you have strong reason to not standardise the data automatically within the code, you can choose to merely center it, or perform no normalisation whatsoever and leave it as is in the input.
 
 ### Gibbs Chain Storage
 
