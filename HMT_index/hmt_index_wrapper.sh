@@ -9,14 +9,14 @@ set -e
 # $5 - MEME-friendly motif input
 # $6 - significance threshold
 # $7 - number of top motifs to take
-# $8 - toggle whether to do Uniprobe to MEME conversion
-# $9 - toggle whether to remove promoter overlapping bits with gene sequences
+# $8 - toggle whether to remove promoter overlapping bits with gene sequences
+# $9 - toggle whether to do Uniprobe to MEME conversion
 
 #start off by filtering the .gff3 to gene lines only
 grep -P '\tgene\t' $2 > genelines.gff3
 
 #strip the potential FASTA line breaks. creates genome_stripped.fa
-mv $1 genome.fa
+cp $1 genome.fa
 python3 /scripts/strip_newlines.py
 
 #create the .genome file
@@ -28,7 +28,7 @@ python3 /scripts/parse_genelines.py $3
 #the python script takes the genelines.gff3 file and makes a genelines.bed out of it
 bedtools flank -l $4 -r 0 -s -i genelines.bed -g bedgenome.genome > promoters.bed
 #remove overlapping promoter chunks
-if [ $9 == '--NoOverlap' ]
+if [ $8 == '--NoOverlap' ]
 	then
 		bedtools subtract -a promoters.bed -b genelines.bed > promoters2.bed
 		mv promoters2.bed promoters.bed
@@ -44,7 +44,7 @@ python3 /scripts/parse_promoters.py
 #on individual MEME-friendly motif files too
 mkdir memefiles
 #optionally turn Uniprobe into MEME. MEME sucks as a format, Uniprobe is easier
-if [ $8 == '--Uniprobe' ]
+if [ $9 == '--Uniprobe' ]
 	then
 		/root/meme/bin/uniprobe2meme $5 > MEME-motifs.txt
 		python3 /scripts/parse_memefile.py MEME-motifs.txt
