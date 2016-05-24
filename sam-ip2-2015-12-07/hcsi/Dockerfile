@@ -32,5 +32,5 @@ RUN mkdir /scripts
 COPY csi/ /scripts/csi/
 COPY html/ /scripts/html/
 MAINTAINER Sam Mason <sam@samason.uk>
-ENTRYPOINT ["python3", "/scripts/csi/hcsi.py"]
+ENTRYPOINT ["bash", "/scripts/csi/hcsi_tarwrapper.sh"]
 CMD ["--help"]

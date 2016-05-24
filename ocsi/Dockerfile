@@ -16,7 +16,7 @@ COPY scripts /scripts
 MAINTAINER Krzysztof Polanski <k.t.polanski@warwick.ac.uk>
 
 # this is where we start
-ENTRYPOINT ["python", "/scripts/ocsi2.py"]
+ENTRYPOINT ["bash", "/scripts/ocsi_tarwrapper.sh"]
 
 # if nothing else is specified in the docker call, just run --help
 CMD ["--help"]

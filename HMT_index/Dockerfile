@@ -59,7 +59,7 @@ RUN apt-get -y install python3 \
 
 # glue over the code
 RUN mkdir /scripts
-COPY hmt_index_wrapper.sh parse_genelines.py parse_matrix.py parse_memefile.py parse_promoters.py /scripts/
+COPY hmt_index_wrapper.sh hmt_index_tarwrapper.sh parse_genelines.py parse_matrix.py parse_memefile.py parse_promoters.py /scripts/
 
 # ...I think that's it for now?
-ENTRYPOINT ["bash", "/scripts/hmt_index_wrapper.sh"]
+ENTRYPOINT ["bash", "/scripts/hmt_index_tarwrapper.sh"]

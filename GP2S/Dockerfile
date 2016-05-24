@@ -21,4 +21,4 @@ COPY scripts /scripts
 MAINTAINER Krzysztof Polanski <k.t.polanski@warwick.ac.uk>
 
 # this is where we start
-ENTRYPOINT ["bash", "/scripts/demo/wrapper.sh"]
+ENTRYPOINT ["bash", "/scripts/demo/gp2s_tarwrapper.sh"]

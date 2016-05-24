@@ -13,9 +13,9 @@ RUN apt-get update && apt-get -y upgrade && \
 
 # add the code
 RUN mkdir /scripts
-COPY hmt.py hmt_wrapper.sh parse_genelines.py /scripts/
+COPY hmt.py hmt_wrapper.sh hmt_tarwrapper.sh parse_genelines.py /scripts/
 
 MAINTAINER Krzysztof Polanski <k.t.polanski@warwick.ac.uk>
 
 # set the entrypoint to the thing
-ENTRYPOINT ["bash", "/scripts/hmt_wrapper.sh"]
+ENTRYPOINT ["bash", "/scripts/hmt_tarwrapper.sh"]

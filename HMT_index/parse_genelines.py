@@ -7,10 +7,12 @@ parser = argparse.ArgumentParser()
 parser.add_argument('findstr',type=str)
 args = parser.parse_args()
 
-#equal sign support!
+#equal sign support! now disabled as fields are complicated!
 findstr = args.findstr
+#if findstr[-1]!='=':
+#	findstr+='='
 if findstr[-1]!='=':
-	findstr+='='
+	sys.stderr.write('WARNING: The field string does not end with an equal sign. This might be correct, depending on the GFF3 file, but double check your results')
 
 #import using fancy pandas technology
 #(and then immediately get rid of the fancy pandas technology)
