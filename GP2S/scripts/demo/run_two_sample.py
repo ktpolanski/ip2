@@ -138,7 +138,7 @@ def run_gp2s(gene,R,args):
         str_out2=None
     #update figure window
     PL.draw()
-    PL.savefig(os.path.join('./plots','%s.png'%gene))
+    PL.savefig(os.path.join('./plots','%s.eps'%gene), format='eps', dpi=1000, bbox_inches='tight')
     return(str_out,str_out2)
 
 def _pool_init(R_, args_):
