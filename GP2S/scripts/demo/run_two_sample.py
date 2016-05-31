@@ -118,7 +118,7 @@ def run_gp2s(gene,R,args):
     if args.tl:
         #creates score and time local predictions
         Tpredict = SP.linspace(T.min(),T.max(),args.predpoints)[:,None]
-        [score,Z] = gptest.test_interval(M0,M1,verbose=False,opt=True,Ngibbs_iterations=args.ngibbs,XPz=Tpredict,logthetaZ=args.thetaz,fix_Z=args.fixz) 
+        [score,Z] = gptest.test_interval(M0,M1,verbose=True,opt=True,Ngibbs_iterations=args.ngibbs,XPz=Tpredict,logthetaZ=args.thetaz,fix_Z=args.fixz) 
         Z1 = [str(x) for x in Z]
         str_out = gene+'\t'+str(score)
         tofde = np.argmax(Z>=args.threshz)
@@ -133,12 +133,12 @@ def run_gp2s(gene,R,args):
         str_out2=gene+'\t'+'\t'.join(Z1)+'\n'
     else:
         #only score
-        score = gptest.test(M0,M1,verbose=False,opt=True)
+        score = gptest.test(M0,M1,verbose=True,opt=True)
         str_out = gene+'\t'+str(score)+'\n'
         str_out2=None
     #update figure window
     PL.draw()
-    PL.savefig(os.path.join('./plots','%s.eps'%gene), format='eps', dpi=1000, bbox_inches='tight')
+    PL.savefig(os.path.join('./plots','%s.png'%gene))
     return(str_out,str_out2)
 
 def _pool_init(R_, args_):
