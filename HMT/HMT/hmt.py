@@ -76,6 +76,10 @@ def main():
 	#import stuff
 	foundmotifs = pd.read_csv(args.motifs, sep='\t', index_col=None, header=None)
 	foundmotifs = foundmotifs.values
+	#upper the foundmotifs as well
+	for i in np.arange(foundmotifs.shape[0]):
+		for j in np.arange(foundmotifs.shape[1]):
+			foundmotifs[i,j] = foundmotifs[i,j].upper()
 	motifs = foundmotifs[:,0]
 	motifs = np.array([item.upper() for item in motifs])
 	motifs = np.unique(motifs)

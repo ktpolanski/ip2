@@ -45,11 +45,11 @@ python3 /scripts/parse_promoters.py
 mkdir memefiles
 #optionally turn Uniprobe into MEME. MEME sucks as a format, Uniprobe is easier
 if [ $9 == '--Uniprobe' ]
-	then
-		/root/meme/bin/uniprobe2meme $5 > MEME-motifs.txt
-		python3 /scripts/parse_memefile.py MEME-motifs.txt
-	else
-		python3 /scripts/parse_memefile.py $5
+then
+	/root/meme/bin/uniprobe2meme $5 > MEME-motifs.txt
+	python3 /scripts/parse_memefile.py MEME-motifs.txt
+else
+	python3 /scripts/parse_memefile.py $5
 fi
 #now loop over all the individual motif files
 for fid in memefiles/*.txt
@@ -60,3 +60,20 @@ do
 	#need to wipe fimo.txt to avoid silliness
 	rm fimo.txt
 done
+
+#there's a lot of intermediate files that need blanking
+rm -r memefiles
+if [ $0 == '--Uniprobe' ]
+then
+	rm MEME-motifs.txt
+fi
+rm bedgenome.genome
+rm genelines.bed
+rm genelines.gff3
+rm genome.fa
+rm genome_stripped.fa
+rm genome_stripped.fa.fai
+rm promoters.bed
+rm promoters.bg
+rm promoters.fa
+rm promoters_rough.fa

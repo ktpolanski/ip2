@@ -12,6 +12,10 @@ When [BiNGO][bingo] performs its GO term overrepresentation analysis, it makes u
 
 The `HMT_Index` app creates the equivalent of a GO term annotation, using transcription factor binding motifs of interest provided on input. The program scans the promoters of genes for motif hits using [FIMO][fimo], and then performs a statistical follow-up analysis to assess whether a binding site is deemed to be present or absent from a particular promoter. The follow-up makes use of [the Hommel method][hommel] to combine up to five FIMO-identified hits' p-values, basing on the assumption that multiple weaker hits of a particular motif in a promoter can be as relevant as a single strong one, into a single p-value. Said p-value is used in a binomial test to determine whether the motif is deemed present or absent from the promoter of choice.
 
+## Test Run
+
+If you want to try out the indexing part of the hypergeometric motif test, the repeat-masked Arabidopsis genome FASTA file and TAIR10 GG3 annotation are provided in `ktpolanski/hmt_index/testdata` along with a single MYB52 binding motif [(Franco-Zorrilla et al., 2014)][fz] in MEME formatting.
+
 ## Input
 
 ### Genome
@@ -24,7 +28,7 @@ The GFF3 annotation needs to be compatible with the provided genome, and is used
 
 ### GFF3 Gene ID Attribute
 
-A GFF3 file can carry a lot of information about an organism's genes, whilst the program is after the very basics - a distinct and discernible gene ID style that is also used in the input of gene groups for the second app, along with corresponding positioning. The GFF3 file is filtered to the lines that contain gene information, but the script subsequently needs information on which of the information fields to use as the identifier. For example, the Arabidopsis test data provided (`ktpolanski/hmt_testdata/annot.gff3` under Community Data) has the `gene_id=` field correspond to AGI identifiers, which are the widely accepted locus code nomenclature for Arabidopsis.
+A GFF3 file can carry a lot of information about an organism's genes, whilst the program is after the very basics - a distinct and discernible gene ID style that is also used in the input of gene groups for the second app, along with corresponding positioning. The GFF3 file is filtered to the lines that contain gene information, but the script subsequently needs information on which of the information fields to use as the identifier. For example, the Arabidopsis test data provided (`ktpolanski/hmt_index_testdata/annot.gff3` under Community Data) has the `gene_id=` field correspond to AGI identifiers, which are the widely accepted locus code nomenclature for Arabidopsis.
 
 ### Promoter Length
 
@@ -65,6 +69,10 @@ The app produces a single file, which features two columns and is tab delimited.
 The second app in the pipeline, `HMT` begins where `HMT_Index` ends and uses the produced "motif annotation" to perform overrepresentation analyses of gene groups of interest. The same `fimo_found.txt` file produced by `HMT_Index` can be used on input for as many analyses for the same organism and motif set as desired.
 
 The algorithm itself is a very straightforward hypergeometric test - given a particular universe and two sets (genes in the gene group versus genes with a particular motif), an overlap is identified and its significance is assessed. The returned output files are very comprehensive, featuring a number of different formats and FDR corrections.
+
+## Test Run
+
+If you want to get a feel for the output of the hypergeometric motif test tool, you'll find all the required files at `ktpolanski/hmt_testdata` under Community Data. The `fimo_found_200bp.txt` file is a motif hit file generated using the `HMT_index` app for a collection of multiple protein binding microarray-derived motifs for Arabidopsis transcription factors ([Franco-Zorrilla et al., 2014][], [Weirauch et al., 2014][weirauch]), while `input.txt` is a collection of 78 gene groups.
 
 ## Input
 
@@ -115,3 +123,5 @@ A comprehensive listing of all the significant overrepresentation instances, fea
 [fimo]: https://bioinformatics.oxfordjournals.org/content/27/7/1017.full
 [hommel]: http://arxiv.org/pdf/1212.4966.pdf
 [meme]: http://meme-suite.org/db/motifs
+[fz]: http://www.pnas.org/content/111/6/2367.short
+[weirauch]: http://www.cell.com/cell/abstract/S0092-8674(14)01036-8?_returnURL=http%3A%2F%2Flinkinghub.elsevier.com%2Fretrieve%2Fpii%2FS0092867414010368%3Fshowall%3Dtrue&cc=y=

@@ -14,3 +14,8 @@ cut -f 4 genelines.bed > universe.txt
 
 #and that's all, folks. HMT time
 python3 /scripts/hmt.py --Universe universe.txt ${@:3}
+
+#placeholder file cleanup to make iPlant output cleaner
+rm genelines.bed
+rm genelines.gff3
+rm universe.txt
