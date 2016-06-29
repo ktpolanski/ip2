@@ -53,13 +53,16 @@ RUN tar zxf meme_4.10.2.tar.gz && cd meme_4.10.2 && \
 #the fetchChromSizes thing is useless. samtools is go
 RUN apt-get -y install samtools
 
+#need ImageMagick for PNG conversion
+RUN apt-get -y install imagemagick
+
 # okay. so, now we can do code things. like set up python3
 RUN apt-get -y install python3 \
          python3-numpy python3-scipy python3-pandas
 
 # glue over the code
 RUN mkdir /scripts
-COPY hmt_index_wrapper.sh hmt_index_tarwrapper.sh strip_newlines.py parse_genelines.py parse_matrix.py parse_memefile.py parse_promoters.py /scripts/
+COPY scripts /scripts/
 
 # ...I think that's it for now?
 ENTRYPOINT ["bash", "/scripts/hmt_index_tarwrapper.sh"]

@@ -266,6 +266,39 @@ def main():
 	writer1.close()
 	writer2.close()
 	writer3.close()
+	#generate output for that webapp thing
+	mot_annot = motifs[:,None]
+	writer1 = open('Webapp_p_values.txt','w')
+	writer2 = open('Webapp_table_gene_counts.txt','w');
+	writer3 = open('Webapp_which_genes.txt','w');
+	writer4 = open('Webapp_clusters.txt','w');
+	writer1.write('\t'+'\t'.join(strgroups)+'\n')
+	writer2.write('Motif\tUniverse\t'+'\t'.join(strgroups)+'\n\t'+str(len(universe)))
+	writer3.write('Motif\tFrequency in Universe\tCluster\tCluster Size\tFrequency in Cluster\tGene IDs\tp-value for over-representation\n')
+	for i in range(len(groups)):
+		genes = input[np.where(input[:,0]==groups[i])[0],1]
+		genes = np.array(list(set(genes).intersection(set(universe))))
+		writer1.write('\t'+str(len(genes)))
+		writer2.write('\t'+str(len(genes)))
+		for j in range(len(genes)):
+			writer4.write(strgroups[i]+'\t'+genes[j]+'\n')
+	for j in range(pvalues.shape[0]):
+		line = list(mot_annot[j,:])
+		line.extend([str(item) for item in pvalues[j,:]])
+		writer1.write('\n'+'\t'.join(line))
+		motgenes = matdict[motifs[j]]
+		writer2.write('\n'+motifs[j]+'\t'+str(len(motgenes)))
+		for i in range(pvalues.shape[1]):
+			genes = input[np.where(input[:,0]==groups[i])[0],1]
+			genes = np.array(list(set(genes).intersection(set(universe))))
+			hitgenes = np.array(list(set(genes).intersection(set(motgenes))))
+			hitgenes.sort()
+			writer2.write('\t'+str(len(hitgenes)))
+			writer3.write('\n'+motifs[j]+'\t'+str(len(motgenes))+'\t'+strgroups[i]+'\t'+str(len(genes))+'\t'+str(len(hitgenes))+'\t'+','.join(hitgenes)+'\t'+str(pvalues[j,i]))
+	writer1.close()
+	writer2.close()
+	writer3.close()
+	writer4.close()
 
 if __name__ == "__main__":
 	main()

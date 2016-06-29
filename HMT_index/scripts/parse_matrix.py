@@ -32,7 +32,8 @@ def get_args():
 	#get the arguments
 	parser = argparse.ArgumentParser()
 	parser.add_argument('tar',type=int)
-	parser.add_argument('prsize',type=int)
+	#no longer in use - now we use actual sizes of the promoters!
+	#parser.add_argument('prsize',type=int)
 	parser.add_argument('pval',type=float)
 	args = parser.parse_args()
 	return args
@@ -48,6 +49,13 @@ def main():
 	#just check if the file is empty. some motifs hit nothing
 	if not fimo.size:
 		sys.exit(0)
+	
+	#and now let's import the parsed promoter sizes to do the binomial properly
+	promsize = {}
+	with open('promoter_lengths.txt','r') as fid:
+		for line in fid:
+			line=line.split()
+			promsize[line[0]] = int(line[1])
 
 	#let's kick out the potential overlapping motif instances
 	del_inds = []
@@ -99,7 +107,7 @@ def main():
 			binom_p = []
 			#how many "flips" will we be making
 			motsize = fimo[start_pos,3] - fimo[start_pos,2] + 1
-			flips = 2 * (args.prsize - motsize + 1)
+			flips = 2 * (promsize[fimo[start_pos,1]] - motsize + 1)
 			#test the top N motifs
 			#obviously if we have less than N, test what we do have
 			for j in range(np.min([(i-start_pos),args.tar])):
@@ -128,7 +136,7 @@ def main():
 	binom_p = []
 	#how many "flips" will we be making
 	motsize = fimo[start_pos,3] - fimo[start_pos,2] + 1
-	flips = 2 * (args.prsize - motsize + 1)
+	flips = 2 * (promsize[fimo[start_pos,1]] - motsize + 1)
 	#test the top N motifs
 	#obviously if we have less than N, test what we do have
 	for j in range(np.min([(i-start_pos),args.tar])):

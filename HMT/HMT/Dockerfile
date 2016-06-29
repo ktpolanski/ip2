@@ -13,7 +13,7 @@ RUN apt-get update && apt-get -y upgrade && \
 
 # add the code
 RUN mkdir /scripts
-COPY hmt.py hmt_wrapper.sh hmt_tarwrapper.sh parse_genelines.py /scripts/
+COPY scripts /scripts/
 
 MAINTAINER Krzysztof Polanski <k.t.polanski@warwick.ac.uk>
 

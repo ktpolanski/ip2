@@ -28,8 +28,10 @@ for i in range((ind1+1),len(bigfile)):
 	if bigfile[i].find('MOTIF')>-1:
 		ind2 = i
 		inds_to_write = np.append(np.arange(headind),np.arange(ind1,ind2))
+		bigfile[ind1] = bigfile[ind1].upper()
 		lines_to_write = bigfile[inds_to_write]
-		writer = open(os.path.normcase('memefiles/'+str(counter).zfill(motcount)+'.txt'),'w')
+		motname = bigfile[ind1].split()[1]
+		writer = open(os.path.normcase('memefiles/'+motname+'.txt'),'w')
 		writer.writelines(lines_to_write)
 		#the start of the new motif is here
 		ind1 = ind2
@@ -37,6 +39,8 @@ for i in range((ind1+1),len(bigfile)):
 #we have a motif at the end
 ind2 = i+1
 inds_to_write = np.append(np.arange(headind),np.arange(ind1,ind2))
+bigfile[ind1] = bigfile[ind1].upper()
 lines_to_write = bigfile[inds_to_write]
-writer = open(os.path.normcase('memefiles/'+str(counter).zfill(motcount)+'.txt'),'w')
+motname = bigfile[ind1].split()[1]
+writer = open(os.path.normcase('memefiles/'+motname+'.txt'),'w')
 writer.writelines(lines_to_write)

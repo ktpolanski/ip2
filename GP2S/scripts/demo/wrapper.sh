@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 #IMPORTANT!
 #when making the iPlant app, have the input CSV be the first thing in the argument order
@@ -15,6 +16,12 @@ until python run_two_sample.py $@; do
    python CSV_fix.py $1
    sleep 1
 done
+
+#kick the dummy file, if one got made
+if [ -f dummy.txt ]
+then
+	rm dummy.txt
+fi
 
 #move the output to our original working directory so iPlant can lap it up
 cd $SCRATCH
