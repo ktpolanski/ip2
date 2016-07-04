@@ -21,7 +21,7 @@ def parse_args():
 	parser.add_argument('--NoStandardising', dest='stand', action='store_false', help='Flag. If provided, the data isn\'t standardised (scaled to N(0,1)) on input.')
 	parser.add_argument('--Legacy', dest='leg', action='store_true', help='Flag. If provided, runs algorithm in legacy mode (as described in Polanski et al 2014) in terms of module mining and merging. If not provided, slightly improves those procedures.')
 	parser.add_argument('--NonRedundantOutput', dest='nro', action='store_true', help='Flag. If provided, runs algorithm in iterational redundancy removal mode which yields considerably smaller and less redundant output, but at the cost of some information loss.')
-	parser.add_argument('--PoolNumber', dest='pool', type=int, default=1, help='Number of processes to run in module mining (to potentially parallelise the mining and accelerate the code). Default: 1 (not parallel)')
+	parser.add_argument('--PoolNumber', dest='pool', type=int, default=0, help='Number of processes to run in module mining (to potentially parallelise the mining and accelerate the code). Default: 0 (automated parallelisation)')
 	parser.add_argument('--Mining_SetSizes', dest='sets', type=str, default='50;100;150;200;250', help='Module mining. Top co-expressed gene set sizes to be scanned for evidence of dependent co-expression. Provide as semicolon delimited list. Default: 50;100;150;200;250')
 	parser.add_argument('--Mining_Alpha', dest='alpha', default=0.05, type=float, help='Module mining. The significance threshold for dependent co-expression testing, is Bonferroni corrected within the script. Default: 0.05')
 	parser.add_argument('--Mining_CorrelationNet', dest='corrnet', default=0.7, type=float, help='Module mining. In the case of scarce profiles, dependent co-expression testing is stopped if the top correlated genes stop being at least this PCC-correlated with the seed. Default: 0.7')
@@ -39,6 +39,9 @@ def parse_args():
 	args.sets = [int(item) for item in args.sets.split(';')]
 	if args.thresh is not None:
 		args.thresh = [int(item) for item in args.thresh.split(';')]
+	#assess parallelisation
+	if args.pool==0:
+		args.pool=mp.cpu_count()
 	return args
 
 def parse_expr_df(args):

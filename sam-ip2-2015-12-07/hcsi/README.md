@@ -16,7 +16,7 @@ hCSI takes CSI as a base and creates an individual CSI fit for each perturbation
 
 ## Test Run
 
-If you want to take hCSI out for a spin without using your own data, this can be done with the aid of one of the 10-gene synthetic networks originally used in the CSI and hCSI publications. The dataset to be used on input can be found at `ktpolanski/hcsi_testdata/dream4_5.csv` under Community Data. Leave all the parameter values as defaults, except for the process count, which you should set to 10. hCSI is computationally intensive and it may take upwards of an hour for this analysis to be complete.
+If you want to take hCSI out for a spin without using your own data, this can be done with the aid of one of the 10-gene synthetic networks originally used in the CSI and hCSI publications. The dataset to be used on input can be found at `ktpolanski/hcsi_testdata/dream4_5.csv` under Community Data. Leave all the parameter values as defaults. hCSI is computationally intensive and it may take upwards of an hour for this analysis to be complete.
 
 ## Input in Detail
 
@@ -49,10 +49,6 @@ The temperature parameters, introduced in hCSI, are also expected to be Gamma di
 **Default:** 0
 
 In order to avoid using the same exact random numbers for sampling when analysing different potential child genes, the RNG is initialised based on the row number of the child gene in the CSV expression file. This makes the output be deterministic for any individual data file provided on input. In case a change in the used RNG chains is desired (for example, in case the sampler gets stuck in a suboptimal local region), changing this parameter from 0 will lead to shifting the seeds by the provided value.
-
-### Process Count
-
-**Obligatory input.** hCSI is parallelised to help decrease run time, and as a high performance computing algorithm has access to more resources than a typical iPlant node. As such, the user is allowed to control the number of processes to best reflect their job's needs. Don't set this higher than the number of genes in the dataset, as then the allocated resources won't be used to their fullest potential. It's fine to set this to less than the number of genes in the dataset as well, the hCSI job pieces for individual genes will just form a queue and take longer to run.
 
 ### Sample Count
 

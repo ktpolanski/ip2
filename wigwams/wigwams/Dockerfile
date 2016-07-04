@@ -1,6 +1,5 @@
 # run as:
 #   docker build -t wigwams .
-# (with wigwams.py and wigwams_wrapper.py in the current directory)
 
 # base everything on a recent Ubuntu
 FROM debian:latest
@@ -15,14 +14,14 @@ RUN apt-get update && apt-get -y upgrade && \
 
 # take wigwams.py and wigwams_wrapper.py, which we need
 # and put it all into /wigwams inside the docker container
-RUN mkdir /wigwams
-COPY wigwams.py wigwams_wrapper.py wigwams_tarwrapper.sh /wigwams/
+RUN mkdir /scripts
+COPY scripts /scripts/
 
 MAINTAINER Krzysztof Polanski <k.t.polanski@warwick.ac.uk>
 
 # so this is what is going to run by default when you trigger this, in the virtual machine
 # call the wigwams wrapper from the other directory while staying in /agave with the files
-ENTRYPOINT ["bash", "/wigwams/wigwams_tarwrapper.sh"]
+ENTRYPOINT ["bash", "/scripts/wigwams_tarwrapper.sh"]
 
 # if nothing else is specified in the docker call, just run --help
 CMD ["--help"]
