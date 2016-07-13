@@ -98,5 +98,9 @@ Output specific to the time local mode, featuring the complete sequence of proba
 
 A directory featuring a plot per gene, with the gene name being the plot file name. The blue fit is the joint fit across all the data irrespective of condition, while green and red are the individual condition fits. The solid line is the Gaussian process mean, while the shaded area around it has a width of two standard deviations. The log Bayes factor is also present on the plot. In the case of the time-local mode, the fits will often exhibit drastic shifts in the width of the shaded areas. This stems from the fact that during sampling, portions of the data are allocated to the single-Gaussian-process fit and individual-Gaussian-processes fits separately, and the regions allocated to one are not seen by the other, making it difficult for the fit to approximate what is happening in sections without allocated data. The probability of differential expression, as exported in `Z.txt`, is plotted in an additional subplot at the top of the time-local plots.
 
+### `FullOutput.tar`
+
+The complete output of the analysis, archived into a single file for ease of downloading to your computer.
+
 [bayesfactor]: http://amstat.tandfonline.com/doi/abs/10.1080/01621459.1995.10476572
 [stegle2010]: http://online.liebertpub.com/doi/abs/10.1089/cmb.2009.0175

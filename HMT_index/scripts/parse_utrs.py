@@ -3,7 +3,7 @@ import numpy as np
 
 #soak up current promoters.bed file
 prom = pd.read_csv('promoters.bed',header=None,index_col=None,sep='\t').values
-annot = pd.read_csv('annot.gff3',header=None,index_col=None,sep='\t').values
+annot = pd.read_csv('annot.gff3',header=None,index_col=None,sep='\t',comment='#').values
 
 #the order is the same in the promoters.bed as it is in annot.gff3
 #after all, annot.gff3 was used to craft promoters.bed

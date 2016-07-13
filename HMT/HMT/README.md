@@ -60,6 +60,10 @@ As previously mentioned, an assumption of this script is that many weaker motif 
 
 The app produces a single file, which features two columns and is tab delimited. The first column is a motif name matching one of the motifs provided in the input file, whilst the second column is a gene ID. For any given motif-gene pair in the output, the statistical post-processing of the FIMO output found some combination of the top hits of the motif in the gene's promoter to be significant. This file is to be used on input for the `HMT` app.
 
+### `logos/`
+
+A folder including PNG images for the PWMs of each of the motifs used in the mining. Take on input by `HMT` to produce an interactive visualisation webapp.
+
 
 
 # `HMT`
@@ -83,6 +87,10 @@ A tab-delimited file with two columns, with the first column being the number of
 ### Motif Hit File
 
 `fimo_found.txt`, as produced by `HMT_Index`. You can also supply your own motif hit file if so desired - the first column is to feature a motif name with the second column featuring the gene ID where the motif was sighted, with a tab delimiting them. An example Arabidopsis file can be found at `ktpolanski/testdata/fimo_found_200bp.txt` under Community Data.
+
+### PWM Logos Folder
+
+The `logos` folder, as produced by `HMT_Index`. If you provide your own motifs, have this folder include a PNG PWM image for each motif, named with the motif named.
 
 ### Significance Threshold
 
@@ -118,6 +126,14 @@ The previous file group, but filtered to feature the rows and columns where at l
 ### `Overrepresentation_XXX.txt`
 
 A comprehensive listing of all the significant overrepresentation instances, featuring information on the motif ID, gene group ID, corrected p-value and a complete list of all the genes from the gene group that had the motif identified in their promoters. Provided for all three FDR corrections.
+
+### `html/`
+
+A folder containing an interactive webapp allowing the browsing of raw p-values. The cells can be shaded based on p-value thresholds, and individual overrepresentation p-values are clickable to reveal a list of genes in the gene group that had a given motif detected in their promoters.
+
+### `FullOutput.tar`
+
+The complete output of the analysis, archived into a single file for ease of downloading to your computer.
 
 [bingo]: https://bioinformatics.oxfordjournals.org/content/21/16/3448.full
 [fimo]: https://bioinformatics.oxfordjournals.org/content/27/7/1017.full

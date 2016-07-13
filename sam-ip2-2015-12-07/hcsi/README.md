@@ -110,5 +110,9 @@ The desired stringency for the GML network. Network edges below the provided pro
 
 For each CSV file on input, a corresponding GML file will be created. These carry a rather minimal set of information - that the graph is directed, a list of nodes (using the gene names from the CSV file used on input for the underlying hCSI run) and a list of edges between them. The edges come with the marginal probability stored under the name of weight, and an extra parameter under the name of interaction is set to "pd" (protein-DNA) in the interest of Cytoscape friendliness.
 
+### `FullOutput.tar`
+
+The complete output of the analysis, archived into a single file for ease of downloading to your computer.
+
 [penfold2011]: http://rsfs.royalsocietypublishing.org/content/1/6/857.short
 [penfold2012]: http://bioinformatics.oxfordjournals.org/content/28/12/i233.short

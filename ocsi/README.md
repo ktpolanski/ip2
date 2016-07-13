@@ -52,6 +52,8 @@ Additionally, OCSI also outputs CSI-like CSV output files where the first column
 The raw recorded Gibbs chain of parental set for each gene in each species. This is only outputed for the sake of completeness, all biologically useful data is captured in marginal matrix files and parental weight files. Each line in this file has the form `species_number:gene_ID:parental_set1;parental_set2;parental_set3;...` where each individual genes within the same parental set are seperated by `,`.
 #### `pppUtilFolder/ppp_species.txt`
 This is a utility file that lists species name and its corresponding species number (the XXX suffix of output files). The CSI input file name is taken as species name.
+### `FullOutput.tar`
+The complete output of the analysis, archived into a single file for ease of downloading to your computer.
 
 ### An extra feature: inferring GRN where one or more species GRN topology is known
 Another powerful usage of OCSI is to infer network topologies of species, while knowing the explicit network topology of related species. 

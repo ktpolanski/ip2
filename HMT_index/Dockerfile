@@ -57,8 +57,10 @@ RUN apt-get -y install samtools
 RUN apt-get -y install imagemagick
 
 # okay. so, now we can do code things. like set up python3
-RUN apt-get -y install python3 \
-         python3-numpy python3-scipy python3-pandas
+RUN apt-get -y install python3 python3-dev python3-setuptools \
+         python3-numpy python3-scipy
+# need a new version of pandas for comment='#' functionality
+RUN easy_install3 pip && pip install pandas
 
 # glue over the code
 RUN mkdir /scripts
