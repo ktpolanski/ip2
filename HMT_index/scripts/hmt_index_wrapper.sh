@@ -14,11 +14,17 @@ set -e
 # $10 - toggle whether to include 5' UTR sequence
 
 #start off by filtering the .gff3 to gene lines only
-cp $2 annot.gff3
+if [ ! -f annot.gff3 ]
+then
+	cp $2 annot.gff3
+fi
 grep -P '\tgene\t' annot.gff3 > genelines.gff3
 
 #strip the potential FASTA line breaks. creates genome_stripped.fa
-cp $1 genome.fa
+if [ ! -f genome.fa ]
+then
+	cp $1 genome.fa
+fi
 python3 /scripts/strip_newlines.py
 
 #create the .genome file
@@ -31,14 +37,14 @@ python3 /scripts/parse_genelines.py $3
 bedtools flank -l $4 -r 0 -s -i genelines.bed -g bedgenome.genome > promoters.bed
 #remove overlapping promoter chunks
 if [ $8 == '--NoOverlap' ]
-	then
-		bedtools subtract -a promoters.bed -b genelines.bed > promoters2.bed
-		mv promoters2.bed promoters.bed
+then
+	bedtools subtract -a promoters.bed -b genelines.bed > promoters2.bed
+	mv promoters2.bed promoters.bed
 fi
 #possibly add 5' UTR
 if [ $10 == '--UseUTR' ]
-	then
-		python3 /scripts/parse_utrs.py
+then
+	python3 /scripts/parse_utrs.py
 fi
 python3 /scripts/parse_promoter_lengths.py
 bedtools getfasta -fi genome_stripped.fa -bed promoters.bed -s -fo promoters_rough.fa

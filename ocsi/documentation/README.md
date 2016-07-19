@@ -31,8 +31,8 @@ The depth of parental set is the maximum number of genes that can regulate a par
 #### Other Options
 A range of auxiliary options are provided to refine the results of OCSI.
 
-1. Gibbs Chain Length: the number of Gibbs sampling steps to be ran. The OCSI publication used 3000 Gibbs steps in their analyses. Default value: 400.
-2. Burn-In: the number of burn-in steps in the Gibbs chain to be discarded, accounting for the random initialisation and letting the algorithm approach a reasonable solution. Default: 50.
+1. Gibbs Chain Length: the number of Gibbs sampling steps to be ran. The OCSI publication used 3000 Gibbs steps in their analyses. Default value: 1000.
+2. Burn-In: the number of burn-in steps in the Gibbs chain to be discarded, accounting for the random initialisation and letting the algorithm approach a reasonable solution. Default: 100.
 3. Weisfeiler-Lehman Depth: the WL kernel depth. Increasing this parameter will emphasise the similarity or difference between the compared network structures, but will also result in an increased computational load. Increasing above 2 is not recommended. Default: 1.
 4. Output Prefix: the prefix of output files in a run. Default: `out`.
 5. Initialization method: choosing the starting GRN of individual species. The details of these initialization methods can be found in the in-depth technical section at the end of the document: 

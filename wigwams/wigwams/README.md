@@ -18,7 +18,7 @@ As mentioned, the module mining evaluates all of the eligible genes as "seed gen
 
 ## Demonstration Run
 
-You can quite easily reproduce the Wigwams run performed in [Polanski et al. (2014)][polanski2014]. The data can be found in `ktpolanski/wigwams_testdata` under Community Data. In the iPlant app, in the Inputs tab, use `model_expr.csv` for the `Gene Expression CSV` field, and `model_deg.csv` for the `Differential Expression CSV` field. In the Parameters tab, check the `No Standardising` and `Run Legacy Version` checkboxes, and enter `10 10 8 5 5` into the `Minimum Module Size Filtering` field. Press the Launch Analysis button in the bottom right corner of the app window and your demonstration run has been launched.
+You can quite easily reproduce the Wigwams run performed in [Polanski et al. (2014)][polanski2014]. The data can be found in `ktpolanski/wigwams_testdata` under Community Data. In the iPlant app, in the Inputs tab, use `model_expr.csv` for the `Gene Expression CSV` field, and `model_deg.csv` for the `Differential Expression CSV` field. In the Parameters tab, check the `No Standardising` and `Run Legacy Version` checkboxes, and enter `10;10;8;5;5` into the `Size Thresholding` field. Press the Launch Analysis button in the bottom right corner of the app window and your demonstration run has been launched.
 
 ## Inputs
 
