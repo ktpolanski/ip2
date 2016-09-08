@@ -116,19 +116,19 @@ In Non-Redundant Output mode, the entirety of the redundancy removal procedure i
 
 ## Output
 
-### `exported_modules-analysis.tsv`
+### `exported_modules.tsv`
 
 This is the tab-separated text file containing the gene membership for the modules that were identified. You can open the file in Excel. The first column contains the Module ID, which is a unique number assigned to the module. The second column features the condition span, the time course experiments across which the module members are dependently co-expressed. The third column features the ID of the gene (as in your CSV input) that's part of the module, and you get one line per gene in the module. If you supplied an annotation, the corresponding annotation columns (where applicable) will constitute columns four onwards. If you supplied a hyperlink template, those will be present as column five.
 
-### `plots-analysis/`
+### `plots/`
 
-Subfolder with one plot per module. The plot name is the module ID, matching the first column of `exported_modules-analysis.tsv`. The plots are vector graphics (.eps format), making them publication-ready. The conditions highlighted in red are the ones where the module is deemed co-regulated, with the black ones not being identified as part of the module's condition span.
+Subfolder with one plot per module. The plot name is the module ID, matching the first column of `exported_modules.tsv`. The plots are vector graphics (.eps format), making them publication-ready. The conditions highlighted in red are the ones where the module is deemed co-regulated, with the black ones not being identified as part of the module's condition span.
 
-### `functional_analysis_inputs-analysis/`
+### `functional_analysis_inputs/`
 
-The module members, handily formatted for follow-up analysis in BiNGO and MEME-LaB. BiNGO ([Maere et al. 2005][maere2005]) is a Cytoscape plugin that can simultaneously mine multiple groups of genes for GO term overexpression, but requires specific data formatting. The MEME-LaB-friendly input can be used for overrepresented motif mining in the web tool MEME-LaB ([Brown et al. 2013][brown2013]). If you provided an annotation, the export will be based on the fourth column of `exported_modules-analysis.tsv` with any unmapped gene skipped. In the case of no annotation, the export will be based on the third column instead.
+The module members, handily formatted for follow-up analysis in BiNGO and MEME-LaB. BiNGO ([Maere et al. 2005][maere2005]) is a Cytoscape plugin that can simultaneously mine multiple groups of genes for GO term overexpression, but requires specific data formatting. The MEME-LaB-friendly input can be used for overrepresented motif mining in the web tool MEME-LaB ([Brown et al. 2013][brown2013]). If you provided an annotation, the export will be based on the fourth column of `exported_modules.tsv` with any unmapped gene skipped. In the case of no annotation, the export will be based on the third column instead.
 
-### `analysis/`
+### `intermediate-module-structures/`
 
 This folder houses the intermediate module processing stages, if those are of interest to advanced users. `raw_modules.tsv` features the initial, heavily redundant mined module list, `merged_modules.tsv` features the module list after merging, `swept_modules.tsv` features the module list after sweeping, and `filtered_modules.tsv` features the module list after filtering (if you performed that step in your analysis). The files are tab separated, with the condition span of the module in the first column, the "seed gene" in the second column, the set size in the third column, the log10 p-value in the fourth column, and comma-separated CSV ID gene membership in the fifth column. Columns two through four only carry information in `raw_modules.tsv`, and are only kept in the other files for formatting consistency. In the case of Non-Redundant Output mode, the files are from the final pass of the iterative redundancy removal.
 

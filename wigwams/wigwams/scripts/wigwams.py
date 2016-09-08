@@ -324,7 +324,7 @@ def pool_singlemining(seed):
 	#take all the things that _pool_init made "global" for the pool running and call the actual function
 	return singlemining(seed, expr_df, deg_df, sets, alpha, corrnet, pvals, legacy)
 
-def mining(expr_df, deg_df, pool=1, sets=[50, 100, 150, 200, 250], alpha=0.05, corrnet=0.7, legacy=False, job='job'):
+def mining(expr_df, deg_df, pool=1, sets=[50, 100, 150, 200, 250], alpha=0.05, corrnet=0.7, legacy=False):
 	'''
 	The Wigwams analysis proper, mining for instances of dependent co-expression across multiple conditions.
 	
@@ -336,15 +336,14 @@ def mining(expr_df, deg_df, pool=1, sets=[50, 100, 150, 200, 250], alpha=0.05, c
 		* alpha - the significance threshold for use in statistical evaluation, Bonferroni corrected within the code. Default: 0.05
 		* corrnet - if the top co-expressed genes stop being at least this correlated with the seed, sets stop being evaluated for that seed. Default: 0.7
 		* legacy - True to run as in Polanski et al 2014, False to pick the longest statistically relevant module instead of the most statistically relevant. Default: False
-		* job - job name for output naming purposes. Default: job
 	'''
 	
 	#time the bugger
 	t0=time.time()
 	
 	#set up output
-	if not os.path.exists(job):
-		os.makedirs(job)
+	if not os.path.exists('intermediate-module-structures'):
+		os.makedirs('intermediate-module-structures')
 	
 	#sort sets just in case, and array them
 	sets = np.asarray(sorted(sets))
@@ -364,7 +363,7 @@ def mining(expr_df, deg_df, pool=1, sets=[50, 100, 150, 200, 250], alpha=0.05, c
 	#mining proper
 	sys.stdout.write('Commencing module mining...\n')
 	modcount = 0
-	writer = open(os.path.normcase(job+'/raw_modules.tsv'),'w')
+	writer = open(os.path.normcase('intermediate-module-structures/raw_modules.tsv'),'w')
 	if pool > 1:
 		#this stuff is kind of confusing. explanation inbound!
 		#_pool_init is the handle, pointing to the _pool_init function
@@ -467,7 +466,7 @@ def singlemerging(toggle, del_inds, raw_modules, mod_means, inds, overlap, meanc
 	#all this stuff we need back as we may have changed it
 	return (toggle, del_inds, raw_modules, mod_means)
 
-def merging(expr_df, overlap=0.3, meancorr=0.9, corrfilt=0.8, condspan = None, which_file='raw', legacy=False, job='job'):
+def merging(expr_df, overlap=0.3, meancorr=0.9, corrfilt=0.8, condspan = None, which_file='raw', legacy=False):
 	'''
 	The merging of redundant Wigwams modules spanning the same conditions.
 	
@@ -479,7 +478,6 @@ def merging(expr_df, overlap=0.3, meancorr=0.9, corrfilt=0.8, condspan = None, w
 		* condspan - if provided, only merge modules spanning exactly condspan conditions in total. Default: None (just merge everything)
 		* which_file - which file to import and merge the modules from. Default: raw
 		* legacy - True to run as in Polanski et al 2014, False to have an extra loop over the entire merging to assess the completeness of the procedure. Default: False
-		* job - job name for output naming purposes. Default: job
 	'''
 	
 	t0 = time.time()
@@ -487,7 +485,7 @@ def merging(expr_df, overlap=0.3, meancorr=0.9, corrfilt=0.8, condspan = None, w
 	if condspan:
 		sys.stdout.write('Performing procedure for modules spanning '+str(condspan)+' conditions.\n')
 	#let us read the modules first
-	raw_modules = read_modules(os.path.normcase(job+'/'+which_file+'_modules.tsv'))
+	raw_modules = read_modules(os.path.normcase('intermediate-module-structures/'+which_file+'_modules.tsv'))
 	#so, what categories will we need to look at?
 	categories = np.unique(raw_modules[:,0])
 	
@@ -545,7 +543,7 @@ def merging(expr_df, overlap=0.3, meancorr=0.9, corrfilt=0.8, condspan = None, w
 				del_inds=[]
 	#Okay, so we're done with merging. Export!
 	sys.stdout.write('Merged down to '+str(raw_modules.shape[0])+' modules.\n')
-	writer = write_modules(job+'/merged_modules.tsv',raw_modules)
+	writer = write_modules('intermediate-module-structures/merged_modules.tsv',raw_modules)
 	#how long did we take?
 	t1 = time.time()
 	print_time(t1, t0, 'Module merging')
@@ -573,7 +571,7 @@ def singlesweeping(raw_modules, del_inds, inds_sup, inds_sub, overlap):
 	#well, that's it
 	return(del_inds)
 
-def sweeping(overlap=0.5, condspan=None, which_file='merged', job='job'):
+def sweeping(overlap=0.5, condspan=None, which_file='merged'):
 	'''
 	The sweeping of redundant Wigwams modules across subsets of condition spans.
 	
@@ -581,7 +579,6 @@ def sweeping(overlap=0.5, condspan=None, which_file='merged', job='job'):
 		* overlap - what fraction of the gene membership of the module spanning fewer conditions that has to be made up of the overlap to trigger sweeping. Default: 0.5
 		* condspan - if provided, only sweep from modules spanning exactly condspan conditions in total. Default: None (just sweep from everything)
 		* which_file - which file to run sweeping on. Default: merged
-		* job - job name for output naming purposes. Default: job
 	'''
 	
 	t0 = time.time()
@@ -589,7 +586,7 @@ def sweeping(overlap=0.5, condspan=None, which_file='merged', job='job'):
 	if condspan:
 		sys.stdout.write('Performing procedure for modules spanning '+str(condspan)+' conditions.\n')
 	#let us read the modules first
-	raw_modules = read_modules(os.path.normcase(job+'/'+which_file+'_modules.tsv'))
+	raw_modules = read_modules(os.path.normcase('intermediate-module-structures/'+which_file+'_modules.tsv'))
 	#so, what categories will we need to look at?
 	categories = np.unique(raw_modules[:,0])
 	#dummy variable for deleted modules
@@ -627,12 +624,12 @@ def sweeping(overlap=0.5, condspan=None, which_file='merged', job='job'):
 	else:
 		swept_modules = raw_modules
 	sys.stdout.write('Swept down to '+str(swept_modules.shape[0])+' modules.\n')
-	writer = write_modules(job+'/swept_modules.tsv',swept_modules)
+	writer = write_modules('intermediate-module-structures/swept_modules.tsv',swept_modules)
 	#how long did we take?
 	t1 = time.time()
 	print_time(t1, t0, 'Module sweeping')
 
-def thresholding(sizes, condspan=None, which_file='swept', job='job'):
+def thresholding(sizes, condspan=None, which_file='swept'):
 	'''
 	Filter the final Wigwams output to modules of desired sizes.
 	
@@ -640,7 +637,6 @@ def thresholding(sizes, condspan=None, which_file='swept', job='job'):
 		* sizes - an N-1-element list (where N is the number of conditions in your input), defining the desired sizes for modules from 2 to N in condition span.
 		* condspan - if provided, only filter the modules spanning exactly condspan conditions. Default: None (just filter everything)
 		* which_file - which file to import modules from and filter them on size. Default: swept
-		* job - job name for output naming purposes. Default: job
 	'''
 	
 	#not sure why I'm even timing this. completeness? but this is super fast.
@@ -649,7 +645,7 @@ def thresholding(sizes, condspan=None, which_file='swept', job='job'):
 	if condspan:
 		sys.stdout.write('Performing procedure for modules spanning '+str(condspan)+' conditions.\n')
 	#let us read the modules first
-	raw_modules = read_modules(os.path.normcase(job+'/'+which_file+'_modules.tsv'))
+	raw_modules = read_modules(os.path.normcase('intermediate-module-structures/'+which_file+'_modules.tsv'))
 	#dummy variable for deleted modules
 	del_inds = []
 	#a-cracking we shall go
@@ -667,12 +663,12 @@ def thresholding(sizes, condspan=None, which_file='swept', job='job'):
 	else:
 		filtered_modules = raw_modules
 	sys.stdout.write('Filtered down to '+str(filtered_modules.shape[0])+' modules.\n')
-	writer = write_modules(job+'/filtered_modules.tsv',filtered_modules)
+	writer = write_modules('intermediate-module-structures/filtered_modules.tsv',filtered_modules)
 	#how long did we take?
 	t1 = time.time()
 	print_time(t1, t0, 'Module filtering')
 
-def make_figure(modules, i, expr_df, cond_span, stand, job):
+def make_figure(modules, i, expr_df, cond_span, stand):
 	'''
 	A helper function that makes the figure(s) for a single module.
 	'''
@@ -725,7 +721,7 @@ def make_figure(modules, i, expr_df, cond_span, stand, job):
 			fname = fname+'_plot'+str(j)
 		plt.tight_layout()
 		sns.despine()
-		plt.savefig(os.path.normcase('plots-'+job+'/'+fname+'.eps'), format='eps', dpi=1000, bbox_inches='tight')
+		plt.savefig(os.path.normcase('plots/'+fname+'.eps'), format='eps', dpi=1000, bbox_inches='tight')
 		#make new figure later
 		plt.close("all")
 
@@ -770,7 +766,7 @@ def export_module(modules, i, annot, writer, bingow, memew):
 	#bingo file tail
 	bingow.write('batch\n')
 
-def export(expr_df, deg_df, which_file='filtered', annot_file=None, hyper=None, stand=True, job='job'):
+def export(expr_df, deg_df, which_file='filtered', annot_file=None, hyper=None, stand=True):
 	'''
 	A function that takes the modules from the "module dump" format and makes a proper export.
 	
@@ -781,7 +777,6 @@ def export(expr_df, deg_df, which_file='filtered', annot_file=None, hyper=None, 
 		* annot - optional TSV with the expr_df identifiers in the first column, public identifiers in the second, and any additional information in third and onward. Default: None (off)
 		* hyper - base URL to create Excel-friendly hyperlinks in the module export for each gene in a module. Provide public gene name placement with {gene} in the string. Default: None (off)
 		* stand - Boolean informing whether the data was internally standardised or not, for axis labelling purposes. Default: True
-		* job - job name for original output identification. Default: job
 	'''
 	
 	t0=time.time()
@@ -808,13 +803,13 @@ def export(expr_df, deg_df, which_file='filtered', annot_file=None, hyper=None, 
 	#okay, this should hopefully sort out the annotation situation. it's in and formatted
 	
 	#set up plot output folder
-	if not os.path.exists('plots-'+job):
-		os.makedirs('plots-'+job)
+	if not os.path.exists('plots'):
+		os.makedirs('plots')
 	#set up BiNGO/MEME-friendly output folder
-	if not os.path.exists('functional_analysis_inputs-'+job):
-		os.makedirs('functional_analysis_inputs-'+job)
+	if not os.path.exists('functional_analysis_inputs'):
+		os.makedirs('functional_analysis_inputs')
 	#import appropriate modules
-	modules = read_modules(os.path.normcase(job+'/'+which_file+'_modules.tsv'))
+	modules = read_modules(os.path.normcase('intermediate-module-structures/'+which_file+'_modules.tsv'))
 	#so, what are our conditions?
 	conditions = np.asarray(deg_df.columns.tolist())
 	#set up individual plot sizes. maximum of 9 plots per thing
@@ -833,11 +828,11 @@ def export(expr_df, deg_df, which_file='filtered', annot_file=None, hyper=None, 
 	#this is fringe as hell, but you never know what people will feed into these things.
 	
 	#crack open a writer handle and prepare the header
-	writer = open('exported_modules-'+job+'.tsv','w')
+	writer = open('exported_modules.tsv','w')
 	writer.write('Module ID\tCondition Span\t')
 	#crack open more writer headers for bingo and meme
-	bingow = open(os.path.normcase('functional_analysis_inputs-'+job+'/bingo.txt'),'w')
-	memew = open(os.path.normcase('functional_analysis_inputs-'+job+'/meme.txt'),'w')
+	bingow = open(os.path.normcase('functional_analysis_inputs/bingo.txt'),'w')
+	memew = open(os.path.normcase('functional_analysis_inputs/meme.txt'),'w')
 	if annot_file:
 		writer.write('\t'.join(annot[0,:]))
 	else:
@@ -845,7 +840,7 @@ def export(expr_df, deg_df, which_file='filtered', annot_file=None, hyper=None, 
 	for i in range(modules.shape[0]):
 		sys.stdout.write('Exporting module '+str(i+1)+'...\n')
 		#we're printing the i'th module
-		make_figure(modules, i, expr_df, cond_span, stand, job)
+		make_figure(modules, i, expr_df, cond_span, stand)
 		#figure status - done
 		export_module(modules,i,annot,writer,bingow,memew)
 	#there we go. that's a wrap. 

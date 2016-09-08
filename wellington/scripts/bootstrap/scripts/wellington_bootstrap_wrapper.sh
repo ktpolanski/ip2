@@ -61,3 +61,7 @@ if [ -s out_treatment2.bed ]
 		#get the heatmap
 		python ../scripts/dnase_to_javatreeview.py out_treatment2.bed $2 treatment2_output_visualisation/javatreeview_heatmap_ready.csv
 fi
+
+#wipe out tempfiles
+rm *.bam.bai
+rm processed_peaks.bed

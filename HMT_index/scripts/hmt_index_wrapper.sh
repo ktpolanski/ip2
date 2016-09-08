@@ -34,6 +34,9 @@ cut -f 1-2 genome_stripped.fa.fai > bedgenome.genome
 #parse up the .bed for promoter extraction
 python3 /scripts/parse_genelines.py $3
 #the python script takes the genelines.gff3 file and makes a genelines.bed out of it
+#now that we have genelines.bed, we can pull out the gene IDs to use as our universe
+cut -f 4 genelines.bed > universe.txt
+#prepare promoter region information
 bedtools flank -l $4 -r 0 -s -i genelines.bed -g bedgenome.genome > promoters.bed
 #remove overlapping promoter chunks
 if [ $8 == '--NoOverlap' ]
@@ -97,3 +100,4 @@ rm promoters.bg
 rm promoters.fa
 rm promoters_rough.fa
 rm promoter_lengths.txt
+rm fimo.txt

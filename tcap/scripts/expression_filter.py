@@ -2,6 +2,7 @@ import argparse
 import numpy as np
 import pandas as pd
 import sys
+import math
 
 def parse_args():
 	parser = argparse.ArgumentParser()
@@ -10,16 +11,27 @@ def parse_args():
 	parser.add_argument('--GeneList', dest='list', type=argparse.FileType('r'), help='An optional gene list (such as TFs) to filter the expression data. One line per gene identifier.')
 	parser.add_argument('--ScoreThreshold', dest='thresh', type=float, default=5, help='GP2S score significance threshold to deem a gene differentially expressed. Default: 5')
 	parser.add_argument('--RemoveCondition', dest='cond', type=str, default=None, help='If provided, remove the data from a given condition (such as control in preparation for treated expression clustering). Default: None (no condition removal)')
-	parser.add_argument('--KickConditionLine', dest='kick', action='store_true', help='Flag. If provided, the treatment/condition line will be kicked after condition filtering is complete')
 	parser.add_argument('--AverageReps', dest='reps', action='store_true', help='Flag. If provided, the individual replicates will be averaged to return one value per time point')
 	args = parser.parse_args()
 	return args
+
+def check_header(header):
+	#for some reason, spacebars get imported as floaty nans because reasons
+	if isinstance(header, float):
+		if math.isnan(header):
+			return True
+	else:
+		#if it's not a floaty nan, proceed as previously
+		if header.upper() in ['TREATMENT','CONDITION','TIME','']:
+			return True
+	#is not header anymore
+	return False
 
 def load_data(args):
 	data = pd.read_csv(args.input,index_col=None,header=None).values
 	headind = []
 	i=0
-	while data[i,0].upper() in ['TREATMENT','CONDITION','TIME','']:
+	while check_header(data[i,0]):
 		headind.append(i)
 		i+=1
 	header = data[headind,:]
@@ -45,13 +57,13 @@ def filter_gp2s(data, args):
 	if del_inds:
 		data = np.delete(data,del_inds,axis=0)
 	else:
-		sys.stdout.write('No genes deemed not differentially expressed by GP2S.')
+		sys.stdout.write('No genes deemed not differentially expressed by GP2S.\n')
 	return data
 
 def filter_list(data,args):
 	genes = args.list.readlines()
 	for i in range(len(genes)):
-		genes[i] = genes[i].strip().upper()
+		genes[i] = genes[i].split()[0].upper()
 	del_inds = []
 	for i in range(data.shape[0]):
 		if data[i,0] not in genes:
@@ -59,7 +71,7 @@ def filter_list(data,args):
 	if del_inds:
 		data = np.delete(data,del_inds,axis=0)
 	else:
-		sys.stdout.write('No genes deleted when compared against the provided gene list.')
+		sys.stdout.write('No genes deleted when compared against the provided gene list.\n')
 	return data
 
 def filter_condition(data, header, args):
@@ -68,14 +80,16 @@ def filter_condition(data, header, args):
 	cond_del_ind = []
 	for i in range(1,len(header2)):
 		header2[i] = header2[i].upper()
-		if header2[i] != args.cond:
+		if header2[i] == args.cond:
 			cond_del_ind.append(i)
 	if cond_del_ind:
 		header = np.delete(header,cond_del_ind,axis=1)
 		data = np.delete(data,cond_del_ind,axis=1)
 	else:
-		sys.stdout.write('No instances of the provided condition name were found in the first line of the header.')
-	if args.kick:
+		sys.stdout.write('No instances of the provided condition name were found in the first line of the header.\n')
+	#automatically kick the treatment line if applicable, i.e. if only one treatment left
+	if len(np.unique(header[0,1:]))==1:
+		sys.stdout.write('Dataset now features one condition only. Removing treatment line.\n')
 		header = np.delete(header,0,axis=0)
 	return (data, header)
 
@@ -100,6 +114,13 @@ def average_reps(data, header):
 	return (data2, header2)
 
 def write_data(data, header):
+	#turn header into strings again (in case it's relevant)
+	for i in range(header.shape[0]):
+		for j in range(header.shape[1]):
+			header[i,j] = str(header[i,j])
+			#continue empty line thing
+			if header[i,j] == 'nan':
+				header[i,j] = ''
 	#turn expression into strings again
 	for i in range(data.shape[0]):
 		for j in range(1,data.shape[1]):
@@ -116,7 +137,7 @@ def main():
 	args = parse_args()
 	#quick sanity check - do we actually have anything to do?
 	if (not args.gp2s) and (not args.list) and (not args.cond) and (not args.reps):
-		sys.stderr.write('No task given. No task performed. Aborting.')
+		sys.stderr.write('No task given. No task performed. Aborting.\n')
 		sys.exit(1)
 	#if we're here, then there's at least something to do.
 	#load data first

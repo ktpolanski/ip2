@@ -3,6 +3,7 @@ matplotlib.use('Agg')
 import argparse
 import numpy as np
 import pandas as pd
+import multiprocessing as mp
 import wigwams as ww
 import os
 import sys
@@ -33,7 +34,6 @@ def parse_args():
 	parser.add_argument('--SizeThresholds', dest='thresh', default=None, type=str, help='Module size thresholding. Optional post-processing step to filter down the module list to modules of at least a given size. Provide as semicolon delimited list, with first element being the desired minimal size of 2-condition modules and the last being the desired minimal size of modules across all the conditions. Default: None (procedure off)')
 	parser.add_argument('--Export_Annotation', dest='annot', default=None, type=argparse.FileType('r'), help='TSV (tab-separated file) with an annotation carrying additional information on the genes in the mining to include in the final export. First column must match the identifiers used, second column must be a public identifier, third column onwards optional. Please remove any "unmapped" information from the mapping. Default: None (no additional annotating of export)')
 	parser.add_argument('--Export_Hyperlink', dest='hyper', default=None, type=str, help='An optional extension to the annotation, adding Excel-friendly hyperlinks to genes identified in modules to the module export in a particular online resource. Include a generic link to finding the gene IDs in the second column of the annotation in the online resource of choice, with the second column identifier place indicated with {gene}. Please provide wrapped in quotes. Default: None (no additional hyperlinks)')
-	parser.add_argument('--JobName', dest='job', default='job', type=str, help='Job name for output naming purposes. Default: job')
 	args = parser.parse_args()
 	#parse the sets and possible thresholds
 	args.sets = [int(item) for item in args.sets.split(';')]
@@ -185,19 +185,19 @@ def wigwams_analysis_default(expr_df, deg_df, args):
 	'''
 
 	#mining. the time consuming part
-	ww.mining(expr_df, deg_df, pool=args.pool, sets=args.sets, alpha = args.alpha, corrnet=args.corrnet, legacy=args.leg, job=args.job)
+	ww.mining(expr_df, deg_df, pool=args.pool, sets=args.sets, alpha = args.alpha, corrnet=args.corrnet, legacy=args.leg)
 	#merging
-	ww.merging(expr_df, overlap=args.merging_overlap, meancorr=args.meancorr, corrfilt=args.corrfilt, legacy=args.leg, job=args.job)
+	ww.merging(expr_df, overlap=args.merging_overlap, meancorr=args.meancorr, corrfilt=args.corrfilt, legacy=args.leg)
 	#sweeping
-	ww.sweeping(overlap=args.sweeping_overlap, job=args.job)
+	ww.sweeping(overlap=args.sweeping_overlap)
 	#thresholding if applicable
 	which_file = 'filtered'
 	if args.thresh:
-		ww.thresholding(sizes=args.thresh, job=args.job)
+		ww.thresholding(sizes=args.thresh)
 	else:
 		which_file = 'swept'
 	#exporting
-	ww.export(expr_df, deg_df, which_file=which_file, annot_file=args.annot, hyper=args.hyper, stand=args.stand, job=args.job)
+	ww.export(expr_df, deg_df, which_file=which_file, annot_file=args.annot, hyper=args.hyper, stand=args.stand)
 
 def run_single_condspan(expr_df, deg_df, args, swov):
 	'''
@@ -209,17 +209,17 @@ def run_single_condspan(expr_df, deg_df, args, swov):
 	if args.thresh:
 		sweepfile = 'filtered'
 	for condspan in np.arange(len(deg_df.columns),1,-1):
-		ww.merging(expr_df, overlap=args.merging_overlap, meancorr=args.meancorr, corrfilt=args.corrfilt, condspan=condspan, which_file=mergefile, legacy=args.leg, job=args.job)
+		ww.merging(expr_df, overlap=args.merging_overlap, meancorr=args.meancorr, corrfilt=args.corrfilt, condspan=condspan, which_file=mergefile, legacy=args.leg)
 		#need this mergefile trick so that we can call it on raw first and then on swept onwards
 		mergefile = 'swept'
 		if args.thresh:
-			ww.thresholding(sizes=args.thresh, condspan=condspan, which_file='merged', job=args.job)
+			ww.thresholding(sizes=args.thresh, condspan=condspan, which_file='merged')
 		#no point sweeping if we've only got two conditions' worth of stuff anymore
 		if condspan > 2:
-			ww.sweeping(overlap=swov, condspan=condspan, which_file=sweepfile, job=args.job)
+			ww.sweeping(overlap=swov, condspan=condspan, which_file=sweepfile)
 	#assess how well we're doing
 	#potential output is the current sweepfile
-	modules = ww.read_modules(os.path.normcase(args.job+'/'+sweepfile+'_modules.tsv'))
+	modules = ww.read_modules(os.path.normcase('intermediate-module-structures/'+sweepfile+'_modules.tsv'))
 	indrat = ww.module_size_check(modules)
 	return indrat
 
@@ -236,7 +236,7 @@ def wigwams_analysis_new(expr_df, deg_df, args):
 	'''
 	
 	#mining. the time consuming part
-	ww.mining(expr_df, deg_df, pool=args.pool, sets=args.sets, alpha = args.alpha, corrnet=args.corrnet, legacy=args.leg, job=args.job)
+	ww.mining(expr_df, deg_df, pool=args.pool, sets=args.sets, alpha = args.alpha, corrnet=args.corrnet, legacy=args.leg)
 	#now, perform merging -> thresholding -> sweeping in succession for decreasing condition spans
 	#loop over different "building block" sweeping stringencies
 	swov_best = 0
@@ -256,7 +256,7 @@ def wigwams_analysis_new(expr_df, deg_df, args):
 	sweepfile = 'merged'
 	if args.thresh:
 		sweepfile = 'filtered'
-	ww.export(expr_df, deg_df, which_file=sweepfile, annot_file=args.annot, hyper=args.hyper, stand=args.stand, job=args.job)
+	ww.export(expr_df, deg_df, which_file=sweepfile, annot_file=args.annot, hyper=args.hyper, stand=args.stand)
 
 def main():
 	#parse the command line stuff

@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 import GPy
-import GPy.plotting.matplot_dep.Tango as Tango
+import GPy.plotting.Tango as Tango
 
 def zerosLinearInterpolate(xy):
     """Linearly interpolate to find all zeros from an evaluated function"""

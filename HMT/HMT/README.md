@@ -62,7 +62,11 @@ The app produces a single file, which features two columns and is tab delimited.
 
 ### `logos/`
 
-A folder including PNG images for the PWMs of each of the motifs used in the mining. Take on input by `HMT` to produce an interactive visualisation webapp.
+A folder including PNG images for the PWMs of each of the motifs used in the mining. Taken on input by `HMT` to produce an interactive visualisation webapp.
+
+### `universe.txt`
+
+A file containing all the gene IDs within the analysed organism, taken on input by `HMT` and used as part of the statistical evaluation of motif overrepresentation. Contains all the gene IDs within the tested organism, with one gene ID per line.
 
 
 
@@ -86,23 +90,23 @@ A tab-delimited file with two columns, with the first column being the number of
 
 ### Motif Hit File
 
-`fimo_found.txt`, as produced by `HMT_Index`. You can also supply your own motif hit file if so desired - the first column is to feature a motif name with the second column featuring the gene ID where the motif was sighted, with a tab delimiting them. An example Arabidopsis file can be found at `ktpolanski/testdata/fimo_found_200bp.txt` under Community Data.
+`fimo_found.txt`, as produced by `HMT_Index`. You can also supply your own motif hit file if so desired - the first column is to feature a motif name with the second column featuring the gene ID where the motif was sighted, with a tab delimiting them. An example Arabidopsis file can be found at `ktpolanski/testdata/fimo_found.txt` under Community Data.
 
 ### PWM Logos Folder
 
-The `logos` folder, as produced by `HMT_Index`. If you provide your own motifs, have this folder include a PNG PWM image for each motif, named with the motif named.
+The `logos` folder, as produced by `HMT_Index`. If you provide your own motifs, have this folder include a PNG PWM image for each motif, named with the motif named. An example Arabidopsis folder can be found at `ktpolanski/testdata/logos/` under Community Data.
+
+### Gene Universe
+
+The `universe.txt` file produced by `HMT_Index`. If you're supplying your own gene hit files, then create the universe as a collection of all the gene IDs in the organism, with one line per gene ID. An example Arabidopsis file can be found at `ktpolanski/testdata/universe.txt` under Community Data.
 
 ### Significance Threshold
 
 The p-value cutoff point for a result to be deemed significant. A complete listing of p-values, both significant and not, is returned in case it's of use.
 
-### GFF3 Annotation
+### Make Webapp
 
-The same GFF3 file you used when creating the motif index file. Used to determine the testing universe. Consult the `HMT_Index` readme for details.
-
-### GFF3 Gene ID Attribute
-
-The script still needs to fish out the relevant gene IDs, like previously. Consult the `HMT_Index` readme for details.
+If the box is checked, an interactive web browser of the raw p-value results will be produced. In the case of large searches, this will greatly slow down the generation of the results due to extensive parsing, with the standard outputs providing a focused list of relevant overrepresentations.
 
 ### Motif Annotation
 
@@ -129,7 +133,7 @@ A comprehensive listing of all the significant overrepresentation instances, fea
 
 ### `html/`
 
-A folder containing an interactive webapp allowing the browsing of raw p-values. The cells can be shaded based on p-value thresholds, and individual overrepresentation p-values are clickable to reveal a list of genes in the gene group that had a given motif detected in their promoters.
+A folder containing an interactive webapp allowing the browsing of raw p-values. The cells can be shaded based on p-value thresholds, and individual overrepresentation p-values are clickable to reveal a list of genes in the gene group that had a given motif detected in their promoters. Only produced if the `Make Webapp` box is checked.
 
 ### `FullOutput.tar`
 
